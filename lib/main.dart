@@ -122,7 +122,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return const MaterialApp(
-      title: 'Runner Chase Elite Revive',
+      title: 'Runner Chase Elite Ultimate',
       debugShowCheckedModeBanner: false,
       home: StartScreen(),
     );
@@ -653,42 +653,13 @@ class _StartScreenState extends State<StartScreen>
                   backgroundColor: Colors.black26,
                   valueColor: const AlwaysStoppedAnimation<Color>(Colors.amber),
                 ),
-                AnimatedBuilder(
-                  animation: _shimmerController,
-                  builder: (context, child) {
-                    return LayoutBuilder(
-                      builder: (context, constraints) {
-                        final w = constraints.maxWidth;
-                        final dx = -w + (_shimmerController.value * 2 * w);
-                        return ClipRect(
-                          child: Transform.translate(
-                            offset: Offset(dx, 0),
-                            child: Container(
-                              width: w * 0.28,
-                              height: 14,
-                              decoration: BoxDecoration(
-                                gradient: LinearGradient(
-                                  colors: [
-                                    Colors.white.withValues(alpha: 0),
-                                    Colors.white.withValues(alpha: 0.5),
-                                    Colors.white.withValues(alpha: 0),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ),
-                        );
-                      },
-                    );
-                  },
-                ),
               ],
             ),
           ),
         ),
         const SizedBox(height: 10),
         Text(
-          'Loading Elite Experience... ${(loadingProgress * 100).toInt()}%',
+          'Loading Ultimate Experience... ${(loadingProgress * 100).toInt()}%',
           style: const TextStyle(
             color: Colors.white,
             fontSize: 14,
@@ -710,7 +681,7 @@ class _StartScreenState extends State<StartScreen>
         onPressed: goToGame,
         icon: const Icon(Icons.play_arrow, size: 28),
         label: const Text(
-          'PLAY',
+          'PLAY ULTIMATE',
           style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
         ),
         style: ElevatedButton.styleFrom(
@@ -719,7 +690,6 @@ class _StartScreenState extends State<StartScreen>
           padding: const EdgeInsets.symmetric(vertical: 16),
           minimumSize: const Size(double.infinity, 55),
           elevation: 8,
-          shadowColor: Colors.black54,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(30),
           ),
@@ -799,158 +769,55 @@ class _StartScreenState extends State<StartScreen>
               child: Column(
                 children: [
                   const SizedBox(height: 40),
-                  AnimatedBuilder(
-                    animation: Listenable.merge([
-                      _introController,
-                      _shimmerController,
-                    ]),
-                    builder: (context, child) {
-                      final shimmerT = _shimmerController.value;
-                      return Opacity(
-                        opacity: _titleFade.value,
-                        child: Transform.translate(
-                          offset: Offset(0, _titleSlide.value),
-                          child: ShaderMask(
-                            blendMode: BlendMode.srcIn,
-                            shaderCallback: (bounds) {
-                              return LinearGradient(
-                                colors: const [
-                                  Colors.white,
-                                  Colors.amberAccent,
-                                  Colors.white,
-                                ],
-                                stops: const [0.35, 0.5, 0.65],
-                                begin: Alignment(-1 + 2 * shimmerT, 0),
-                                end: Alignment(1 + 2 * shimmerT, 0),
-                              ).createShader(bounds);
-                            },
-                            child: child,
-                          ),
-                        ),
-                      );
-                    },
-                    child: const Text(
-                      'RUNNER CHASE ELITE',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 32,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 2,
-                        shadows: [Shadow(color: Colors.black45, blurRadius: 6)],
-                      ),
+                  const Text(
+                    'RUNNER CHASE ELITE',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 32,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 2,
+                      shadows: [Shadow(color: Colors.black45, blurRadius: 6)],
                     ),
                   ),
                   const SizedBox(height: 6),
-                  AnimatedBuilder(
-                    animation: _introController,
-                    builder: (context, child) {
-                      return Opacity(
-                        opacity: _titleFade.value,
-                        child: Transform.translate(
-                          offset: Offset(0, _titleSlide.value),
-                          child: child,
-                        ),
-                      );
-                    },
-                    child: Text(
-                      'DODGE  •  COLLECT  •  ESCAPE',
-                      style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.75),
-                        fontSize: 11,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: 3,
-                        shadows: const [
-                          Shadow(color: Colors.black45, blurRadius: 4),
-                        ],
-                      ),
+                  Text(
+                    'ULTIMATE EDITION • COMBO • MAGNET',
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.75),
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 3,
                     ),
                   ),
                   const Spacer(),
-                  AnimatedBuilder(
-                    animation: Listenable.merge([
-                      _bounceAnimation,
-                      _introController,
-                      _glowController,
-                      _ringRotateController,
-                    ]),
-                    builder: (context, child) {
-                      return Opacity(
-                        opacity: _logoFade.value,
-                        child: Transform.translate(
-                          offset: Offset(0, -_bounceAnimation.value),
-                          child: Transform.rotate(
-                            angle: _logoRotate.value,
-                            child: Transform.scale(
-                              scale: _logoScale.value,
-                              child: SizedBox(
-                                width: 170,
-                                height: 170,
-                                child: Stack(
-                                  alignment: Alignment.center,
-                                  children: [
-                                    _buildGlowRing(0.0),
-                                    _buildGlowRing(0.5),
-                                    Transform.rotate(
-                                      angle:
-                                          _ringRotateController.value * 2 * pi,
-                                      child: CustomPaint(
-                                        size: const Size(150, 150),
-                                        painter: _RadarRingPainter(
-                                          color: Colors.white.withValues(
-                                            alpha: 0.35,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                    _buildLogoImage(),
-                                  ],
-                                ),
-                              ),
+                  SizedBox(
+                    width: 170,
+                    height: 170,
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        _buildGlowRing(0.0),
+                        _buildGlowRing(0.5),
+                        Transform.rotate(
+                          angle: _ringRotateController.value * 2 * pi,
+                          child: CustomPaint(
+                            size: const Size(150, 150),
+                            painter: _RadarRingPainter(
+                              color: Colors.white.withValues(alpha: 0.35),
                             ),
                           ),
                         ),
-                      );
-                    },
+                        _buildLogoImage(),
+                      ],
+                    ),
                   ),
                   const Spacer(),
-                  AnimatedBuilder(
-                    animation: _introController,
-                    builder: (context, child) {
-                      return Opacity(
-                        opacity: _bottomFade.value,
-                        child: Transform.translate(
-                          offset: Offset(0, _bottomSlide.value),
-                          child: child,
-                        ),
-                      );
-                    },
-                    child: Padding(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: size.width * 0.12,
-                        vertical: 30,
-                      ),
-                      child: AnimatedSwitcher(
-                        duration: const Duration(milliseconds: 450),
-                        transitionBuilder: (child, animation) {
-                          return FadeTransition(
-                            opacity: animation,
-                            child: ScaleTransition(
-                              scale: Tween<double>(begin: 0.85, end: 1.0)
-                                  .animate(
-                                    CurvedAnimation(
-                                      parent: animation,
-                                      curve: Curves.easeOutBack,
-                                    ),
-                                  ),
-                              child: child,
-                            ),
-                          );
-                        },
-                        child: isLoaded
-                            ? _buildPlayButton()
-                            : _buildLoadingBar(),
-                      ),
+                  Padding(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: size.width * 0.12,
+                      vertical: 30,
                     ),
+                    child: isLoaded ? _buildPlayButton() : _buildLoadingBar(),
                   ),
                 ],
               ),
@@ -1041,7 +908,12 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   int keys = 0;
   int level = 1;
   int highestLevel = 1;
-  bool isNewHighScore = false;
+
+  // Massive new features: Combo multiplier & Milestone Banners
+  int coinCombo = 0;
+  int scoreMultiplier = 1;
+  String? activeMilestoneText;
+  int milestoneTimer = 0;
 
   bool isGameOver = false;
   bool isArrested = false;
@@ -1172,10 +1044,13 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     coins = 0;
     keys = 0;
     level = 1;
-    isNewHighScore = false;
     speed = 0.006;
     hasMagnetShield = false;
     magnetShieldTimer = 0;
+    coinCombo = 0;
+    scoreMultiplier = 1;
+    activeMilestoneText = null;
+    milestoneTimer = 0;
 
     playerLane = 1;
     playerLaneAnim = 1.0;
@@ -1245,6 +1120,11 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
         if (magnetShieldTimer <= 0) {
           hasMagnetShield = false;
         }
+      }
+
+      if (milestoneTimer > 0) {
+        milestoneTimer--;
+        if (milestoneTimer <= 0) activeMilestoneText = null;
       }
 
       policeLaneDelayCounter++;
@@ -1376,16 +1256,31 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
             item.y < playerY + 0.06) {
           if (item.type == ItemType.coin) {
             coins += 1;
-            score += 10;
+            coinCombo++;
+            if (coinCombo >= 5) {
+              scoreMultiplier = 2;
+              activeMilestoneText = '🔥 COMBO x2 ACTIVE! 🔥';
+              milestoneTimer = 90;
+            }
+            if (coinCombo >= 10) {
+              scoreMultiplier = 3;
+              activeMilestoneText = '⚡ MEGA COMBO x3! ⚡';
+              milestoneTimer = 90;
+            }
+            score += 10 * scoreMultiplier;
             popups.add(
-              FloatingPopup(x: item.lane * 1.0, y: item.y, text: '+10'),
+              FloatingPopup(
+                x: item.lane * 1.0,
+                y: item.y,
+                text: '+${10 * scoreMultiplier}',
+              ),
             );
             items.remove(item);
             SoundManager.playCoin();
             _scoreBumpController.forward(from: 0);
           } else if (item.type == ItemType.keyItem) {
             keys += 1;
-            score += 50;
+            score += 50 * scoreMultiplier;
             popups.add(
               FloatingPopup(x: item.lane * 1.0, y: item.y, text: 'KEY! +1'),
             );
@@ -1408,6 +1303,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
             _scoreBumpController.forward(from: 0);
           } else if (isJumping) {
             item.dodged = true;
+            coinCombo = 0; // reset combo on close dodge
           } else {
             if (hasMagnetShield) {
               hasMagnetShield = false;
@@ -1468,7 +1364,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
       }
 
       if (tickCounter % 15 == 0) {
-        score += 1;
+        score += 1 * scoreMultiplier;
       }
 
       final newLevel = (coins ~/ 10) + 1;
@@ -1554,10 +1450,6 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     if (coins > highestCoins) highestCoins = coins;
     if (level > highestLevel) highestLevel = level;
     _gameOverController.forward(from: 0);
-  }
-
-  void gameOver() {
-    finalizeGameOver();
   }
 
   void pauseGame() {
@@ -2408,6 +2300,36 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                   ),
                 ),
 
+              if (activeMilestoneText != null)
+                Positioned(
+                  top: 110,
+                  left: 0,
+                  right: 0,
+                  child: Center(
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.amberAccent,
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: const [
+                          BoxShadow(color: Colors.black45, blurRadius: 10),
+                        ],
+                      ),
+                      child: Text(
+                        activeMilestoneText!,
+                        style: const TextStyle(
+                          color: Colors.black,
+                          fontWeight: FontWeight.w900,
+                          fontSize: 16,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+
               if (isIntroPhase)
                 Positioned.fill(
                   child: IgnorePointer(
@@ -2503,16 +2425,18 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Row(
-                                children: const [
-                                  Icon(
+                                children: [
+                                  const Icon(
                                     Icons.bolt_rounded,
                                     color: Colors.white,
                                     size: 18,
                                   ),
-                                  SizedBox(width: 5),
+                                  const SizedBox(width: 5),
                                   Text(
-                                    'SCORE',
-                                    style: TextStyle(
+                                    scoreMultiplier > 1
+                                        ? 'SCORE (x$scoreMultiplier)'
+                                        : 'SCORE',
+                                    style: const TextStyle(
                                       color: Colors.white70,
                                       fontSize: 10,
                                       fontWeight: FontWeight.w800,
@@ -3181,30 +3105,6 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                                         ],
                                       ),
                                     ),
-                                    if (isNewHighScore)
-                                      Padding(
-                                        padding: const EdgeInsets.only(top: 13),
-                                        child: Row(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: const [
-                                            Icon(
-                                              Icons.emoji_events_rounded,
-                                              color: Colors.amber,
-                                              size: 18,
-                                            ),
-                                            SizedBox(width: 6),
-                                            Text(
-                                              'NEW HIGH SCORE!',
-                                              style: TextStyle(
-                                                color: Colors.amberAccent,
-                                                fontSize: 13,
-                                                fontWeight: FontWeight.w900,
-                                                letterSpacing: 1,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
                                     const SizedBox(height: 20),
                                     SizedBox(
                                       width: double.infinity,
