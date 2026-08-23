@@ -122,7 +122,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return const MaterialApp(
-      title: 'Runner Chase Elite Ultimate',
+      title: 'Runner Chase Elite Epic',
       debugShowCheckedModeBanner: false,
       home: StartScreen(),
     );
@@ -581,11 +581,11 @@ class _StartScreenState extends State<StartScreen>
       child: Transform.scale(
         scale: scale,
         child: Container(
-          width: 132,
-          height: 132,
+          width: 145,
+          height: 145,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            border: Border.all(color: Colors.amberAccent, width: 2),
+            border: Border.all(color: Colors.amberAccent, width: 2.5),
           ),
         ),
       ),
@@ -595,16 +595,16 @@ class _StartScreenState extends State<StartScreen>
   Widget _buildLogoImage() {
     return ClipOval(
       child: Container(
-        width: 118,
-        height: 118,
+        width: 125,
+        height: 125,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          border: Border.all(color: Colors.white, width: 3),
+          border: Border.all(color: Colors.white, width: 3.5),
           boxShadow: [
             BoxShadow(
-              color: Colors.amber.withValues(alpha: 0.55),
-              blurRadius: 22,
-              spreadRadius: 2,
+              color: Colors.amber.withValues(alpha: 0.65),
+              blurRadius: 26,
+              spreadRadius: 3,
             ),
             const BoxShadow(
               color: Colors.black45,
@@ -628,7 +628,7 @@ class _StartScreenState extends State<StartScreen>
               child: const Icon(
                 Icons.local_police_rounded,
                 color: Colors.white,
-                size: 62,
+                size: 65,
               ),
             );
           },
@@ -659,7 +659,7 @@ class _StartScreenState extends State<StartScreen>
         ),
         const SizedBox(height: 10),
         Text(
-          'Loading Ultimate Experience... ${(loadingProgress * 100).toInt()}%',
+          'Loading Epic Experience... ${(loadingProgress * 100).toInt()}%',
           style: const TextStyle(
             color: Colors.white,
             fontSize: 14,
@@ -679,17 +679,22 @@ class _StartScreenState extends State<StartScreen>
       },
       child: ElevatedButton.icon(
         onPressed: goToGame,
-        icon: const Icon(Icons.play_arrow, size: 28),
+        icon: const Icon(Icons.play_arrow_rounded, size: 30),
         label: const Text(
-          'PLAY ULTIMATE',
-          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+          'EPIC PLAY',
+          style: TextStyle(
+            fontSize: 22,
+            fontWeight: FontWeight.w900,
+            letterSpacing: 1.5,
+          ),
         ),
         style: ElevatedButton.styleFrom(
           backgroundColor: Colors.amber,
           foregroundColor: Colors.black,
-          padding: const EdgeInsets.symmetric(vertical: 16),
-          minimumSize: const Size(double.infinity, 55),
-          elevation: 8,
+          padding: const EdgeInsets.symmetric(vertical: 18),
+          minimumSize: const Size(double.infinity, 60),
+          elevation: 12,
+          shadowColor: Colors.amberAccent.withValues(alpha: 0.5),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(30),
           ),
@@ -768,56 +773,136 @@ class _StartScreenState extends State<StartScreen>
             SafeArea(
               child: Column(
                 children: [
-                  const SizedBox(height: 40),
-                  const Text(
-                    'RUNNER CHASE ELITE',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 32,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 2,
-                      shadows: [Shadow(color: Colors.black45, blurRadius: 6)],
+                  const SizedBox(height: 35),
+                  AnimatedBuilder(
+                    animation: Listenable.merge([
+                      _introController,
+                      _shimmerController,
+                    ]),
+                    builder: (context, child) {
+                      final shimmerT = _shimmerController.value;
+                      return Opacity(
+                        opacity: _titleFade.value,
+                        child: Transform.translate(
+                          offset: Offset(0, _titleSlide.value),
+                          child: ShaderMask(
+                            blendMode: BlendMode.srcIn,
+                            shaderCallback: (bounds) {
+                              return LinearGradient(
+                                colors: const [
+                                  Colors.white,
+                                  Colors.amberAccent,
+                                  Colors.white,
+                                ],
+                                stops: const [0.35, 0.5, 0.65],
+                                begin: Alignment(-1 + 2 * shimmerT, 0),
+                                end: Alignment(1 + 2 * shimmerT, 0),
+                              ).createShader(bounds);
+                            },
+                            child: child,
+                          ),
+                        ),
+                      );
+                    },
+                    child: const Text(
+                      'RUNNER CHASE ELITE',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 34,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 2.5,
+                        shadows: [Shadow(color: Colors.black54, blurRadius: 8)],
+                      ),
                     ),
                   ),
                   const SizedBox(height: 6),
-                  Text(
-                    'ULTIMATE EDITION • COMBO • MAGNET',
-                    style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.75),
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 3,
+                  AnimatedBuilder(
+                    animation: _introController,
+                    builder: (context, child) {
+                      return Opacity(
+                        opacity: _titleFade.value,
+                        child: Transform.translate(
+                          offset: Offset(0, _titleSlide.value),
+                          child: child,
+                        ),
+                      );
+                    },
+                    child: Text(
+                      'EPIC EDITION  •  5S SHIELD  •  LEVEL 4 DIFFICULTY',
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.8),
+                        fontSize: 10.5,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 2.5,
+                      ),
                     ),
                   ),
                   const Spacer(),
-                  SizedBox(
-                    width: 170,
-                    height: 170,
-                    child: Stack(
-                      alignment: Alignment.center,
-                      children: [
-                        _buildGlowRing(0.0),
-                        _buildGlowRing(0.5),
-                        Transform.rotate(
-                          angle: _ringRotateController.value * 2 * pi,
-                          child: CustomPaint(
-                            size: const Size(150, 150),
-                            painter: _RadarRingPainter(
-                              color: Colors.white.withValues(alpha: 0.35),
+                  AnimatedBuilder(
+                    animation: Listenable.merge([
+                      _bounceAnimation,
+                      _introController,
+                      _glowController,
+                      _ringRotateController,
+                    ]),
+                    builder: (context, _) {
+                      return Opacity(
+                        opacity: _logoFade.value,
+                        child: Transform.translate(
+                          offset: Offset(0, -_bounceAnimation.value),
+                          child: Transform.rotate(
+                            angle: _logoRotate.value,
+                            child: Transform.scale(
+                              scale: _logoScale.value,
+                              child: SizedBox(
+                                width: 190,
+                                height: 190,
+                                child: Stack(
+                                  alignment: Alignment.center,
+                                  children: [
+                                    _buildGlowRing(0.0),
+                                    _buildGlowRing(0.5),
+                                    Transform.rotate(
+                                      angle:
+                                          _ringRotateController.value * 2 * pi,
+                                      child: CustomPaint(
+                                        size: const Size(165, 165),
+                                        painter: _RadarRingPainter(
+                                          color: Colors.amberAccent.withValues(
+                                            alpha: 0.5,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                    _buildLogoImage(),
+                                  ],
+                                ),
+                              ),
                             ),
                           ),
                         ),
-                        _buildLogoImage(),
-                      ],
-                    ),
+                      );
+                    },
                   ),
                   const Spacer(),
-                  Padding(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: size.width * 0.12,
-                      vertical: 30,
+                  AnimatedBuilder(
+                    animation: _introController,
+                    builder: (context, child) {
+                      return Opacity(
+                        opacity: _bottomFade.value,
+                        child: Transform.translate(
+                          offset: Offset(0, _bottomSlide.value),
+                          child: child,
+                        ),
+                      );
+                    },
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: size.width * 0.12,
+                        vertical: 30,
+                      ),
+                      child: isLoaded ? _buildPlayButton() : _buildLoadingBar(),
                     ),
-                    child: isLoaded ? _buildPlayButton() : _buildLoadingBar(),
                   ),
                 ],
               ),
@@ -909,7 +994,6 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   int level = 1;
   int highestLevel = 1;
 
-  // Massive new features: Combo multiplier & Milestone Banners
   int coinCombo = 0;
   int scoreMultiplier = 1;
   String? activeMilestoneText;
@@ -927,6 +1011,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   Timer? reviveTimer;
   bool isRevivingCloud = false;
 
+  // 5-Second Shield Effect state (approx 300 ticks)
   bool hasMagnetShield = false;
   int magnetShieldTimer = 0;
 
@@ -1115,6 +1200,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
       playerLaneAnim += (playerLane - playerLaneAnim) * 0.28;
       policeLaneAnim += (policeLane - policeLaneAnim) * 0.22;
 
+      // 5-Second Shield Timer countdown (300 ticks = ~5 seconds)
       if (hasMagnetShield) {
         magnetShieldTimer--;
         if (magnetShieldTimer <= 0) {
@@ -1168,8 +1254,10 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
           policeY - playerY < 0.09 &&
           !isArrested &&
           !isJumping) {
-        arrestPlayer();
-        return;
+        if (!hasMagnetShield) {
+          arrestPlayer();
+          return;
+        }
       }
 
       double speedProgress = ((speed - 0.006) / (0.024 - 0.006)).clamp(
@@ -1177,18 +1265,17 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
         1.0,
       );
 
+      // Level 4 Difficulty Tuning with Fair, Playable Hurdles
       if (tickCounter >= nextSpawnTick) {
         int itemCount;
-        if (speedProgress < 0.15)
+        if (level == 1)
           itemCount = 1;
-        else if (speedProgress < 0.35)
+        else if (level == 2)
           itemCount = 2;
-        else if (speedProgress < 0.60)
-          itemCount = 3;
-        else if (speedProgress < 0.85)
-          itemCount = 4;
+        else if (level == 3)
+          itemCount = 2;
         else
-          itemCount = 5;
+          itemCount = 3; // Level 4 tough balanced layout
 
         List<int> usedLanes = [];
         for (int i = 0; i < itemCount; i++) {
@@ -1199,20 +1286,19 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
           usedLanes.add(lane);
 
           double chance = random.nextDouble();
-          double carChance = (0.25 + (speed - 0.006) * 6).clamp(0.25, 0.45);
-          double coinChance = 0.40 + (speedProgress * 0.20);
-          if (coinChance > 0.65) coinChance = 0.65;
+          double carChance = (0.30 + (speed - 0.006) * 5).clamp(0.30, 0.50);
+          double coinChance = 0.35;
 
           ItemType type;
           if (level >= 2 && chance < 0.06) {
             type = ItemType.keyItem;
-          } else if (level >= 2 && chance < 0.12) {
-            type = ItemType.magnet;
+          } else if (level >= 2 && chance < 0.14) {
+            type = ItemType.magnet; // 5s Shield item
           } else if (chance < coinChance) {
             type = ItemType.coin;
           } else if (chance < coinChance + carChance) {
             type = ItemType.car;
-          } else if (chance < coinChance + carChance + 0.12) {
+          } else if (chance < coinChance + carChance + 0.15) {
             type = ItemType.barricade;
           } else {
             type = ItemType.bush;
@@ -1225,15 +1311,15 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                 : 'assets/game/car2.png';
           }
 
-          double spawnY = -0.18 - (i * 0.08);
+          double spawnY = -0.18 - (i * 0.09);
           items.add(
             FallingItem(lane: lane, y: spawnY, type: type, carImage: carImg),
           );
         }
 
-        int baseGap = (48 - (speedProgress * 34)).round();
-        if (baseGap < 12) baseGap = 12;
-        nextSpawnTick = tickCounter + baseGap + random.nextInt(10);
+        int baseGap = (44 - (speedProgress * 28)).round();
+        if (baseGap < 14) baseGap = 14;
+        nextSpawnTick = tickCounter + baseGap + random.nextInt(8);
       }
 
       for (var item in items) {
@@ -1289,30 +1375,28 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
             _scoreBumpController.forward(from: 0);
           } else if (item.type == ItemType.magnet) {
             hasMagnetShield = true;
-            magnetShieldTimer = 450;
+            magnetShieldTimer = 300; // Exact 5 seconds invincibility window
             score += 75;
+            activeMilestoneText = '🛡️ 5S SHIELD ACTIVE! 🛡️';
+            milestoneTimer = 120;
             popups.add(
-              FloatingPopup(
-                x: item.lane * 1.0,
-                y: item.y,
-                text: 'MAGNET SHIELD!',
-              ),
+              FloatingPopup(x: item.lane * 1.0, y: item.y, text: '5S SHIELD!'),
             );
             items.remove(item);
             SoundManager.playCoin();
             _scoreBumpController.forward(from: 0);
           } else if (isJumping) {
             item.dodged = true;
-            coinCombo = 0; // reset combo on close dodge
+            coinCombo = 0;
           } else {
+            // SHIELD PROTECTION CHECK
             if (hasMagnetShield) {
-              hasMagnetShield = false;
               items.remove(item);
               popups.add(
                 FloatingPopup(
                   x: item.lane * 1.0,
                   y: item.y,
-                  text: 'SHIELD ABSORBED!',
+                  text: 'SHIELD BLOCKED!',
                 ),
               );
             } else {
@@ -2253,21 +2337,21 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                           return Transform.scale(
                             scale: p,
                             child: Container(
-                              width: 90,
-                              height: 90,
+                              width: 95,
+                              height: 95,
                               decoration: BoxDecoration(
                                 shape: BoxShape.circle,
                                 border: Border.all(
                                   color: Colors.purpleAccent,
-                                  width: 3,
+                                  width: 3.5,
                                 ),
                                 boxShadow: [
                                   BoxShadow(
                                     color: Colors.purpleAccent.withValues(
-                                      alpha: 0.6,
+                                      alpha: 0.7,
                                     ),
-                                    blurRadius: 16,
-                                    spreadRadius: 2,
+                                    blurRadius: 18,
+                                    spreadRadius: 3,
                                   ),
                                 ],
                               ),
@@ -2308,14 +2392,14 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                   child: Center(
                     child: Container(
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 8,
+                        horizontal: 18,
+                        vertical: 9,
                       ),
                       decoration: BoxDecoration(
                         color: Colors.amberAccent,
                         borderRadius: BorderRadius.circular(20),
                         boxShadow: const [
-                          BoxShadow(color: Colors.black45, blurRadius: 10),
+                          BoxShadow(color: Colors.black54, blurRadius: 12),
                         ],
                       ),
                       child: Text(
@@ -2323,7 +2407,8 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                         style: const TextStyle(
                           color: Colors.black,
                           fontWeight: FontWeight.w900,
-                          fontSize: 16,
+                          fontSize: 16.5,
+                          letterSpacing: 1,
                         ),
                       ),
                     ),
