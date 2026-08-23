@@ -1,33 +1,28 @@
 import 'dart:async';
 import 'dart:math';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:audioplayers/audioplayers.dart';
 
 class SoundManager {
   static final AudioPlayer bg = AudioPlayer();
-  static final List<AudioPlayer> coinPool = List.generate(
-    4,
-    (_) => AudioPlayer(),
-  );
+  static final List<AudioPlayer> coinPool = List.generate(4, (_) => AudioPlayer());
   static final AudioPlayer jump = AudioPlayer();
   static final AudioPlayer gameOver = AudioPlayer();
 
   static bool _preloaded = false;
   static bool _preloading = false;
-  static bool _bgStarted = false;
 
   static Future<void> preload() async {
     if (_preloaded || _preloading) return;
     _preloading = true;
-
     try {
       for (final p in coinPool) {
         await p.setPlayerMode(PlayerMode.lowLatency);
       }
       await jump.setPlayerMode(PlayerMode.lowLatency);
       await gameOver.setPlayerMode(PlayerMode.lowLatency);
-
       await bg.setReleaseMode(ReleaseMode.loop);
       await bg.setVolume(0.5);
 
@@ -36,11 +31,9 @@ class SoundManager {
         jump.setSourceAsset('sounds/jump.mp3'),
         gameOver.setSourceAsset('sounds/gameover.mp3'),
       ];
-
       for (final p in coinPool) {
         loadTasks.add(p.setSourceAsset('sounds/coin.mp3'));
       }
-
       await Future.wait(loadTasks);
       _preloaded = true;
     } catch (_) {
@@ -53,32 +46,24 @@ class SoundManager {
     try {
       await bg.setReleaseMode(ReleaseMode.loop);
       await bg.play(AssetSource('sounds/background.mp3'));
-      _bgStarted = true;
     } catch (_) {}
   }
 
   static Future<void> stopBackgroundMusic() async {
     try {
       await bg.stop();
-      _bgStarted = false;
     } catch (_) {}
   }
 
   static void playCoin() {
-    _playCoinFresh();
-  }
-
-  static Future<void> _playCoinFresh() async {
     final player = AudioPlayer();
     try {
-      await player.setPlayerMode(PlayerMode.lowLatency);
-      await player.setReleaseMode(ReleaseMode.release);
-      player.onPlayerComplete.listen((_) {
-        player.dispose();
-      });
-      await player.play(AssetSource('sounds/coin.mp3'));
+      player.setPlayerMode(PlayerMode.lowLatency);
+      player.setReleaseMode(ReleaseMode.release);
+      player.onPlayerComplete.listen((_) => player.dispose());
+      player.play(AssetSource('sounds/coin.mp3'));
     } catch (_) {
-      await player.dispose();
+      player.dispose();
     }
   }
 
@@ -121,283 +106,30 @@ class MyApp extends StatelessWidget {
   const MyApp({super.key});
   @override
   Widget build(BuildContext context) {
-    return const MaterialApp(
-      title: 'Runner Chase Elite Epic',
+    return MaterialApp(
+      title: 'Runner Chase Elite Overdrive',
       debugShowCheckedModeBanner: false,
-      home: StartScreen(),
-    );
-  }
-}
-
-class _FloatingClouds extends StatefulWidget {
-  const _FloatingClouds();
-  @override
-  State<_FloatingClouds> createState() => _FloatingCloudsState();
-}
-
-class _FloatingCloudsState extends State<_FloatingClouds>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  final List<double> _startOffsets = [0.0, 0.35, 0.65, 0.85, 0.5];
-  final List<double> _speeds = [0.55, 1.0, 0.8, 1.3, 0.65];
-  final List<double> _sizes = [70, 46, 90, 38, 60];
-  final List<double> _verticalPositions = [0.08, 0.18, 0.04, 0.24, 0.14];
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 20),
-    )..repeat();
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _controller,
-      builder: (context, child) {
-        return LayoutBuilder(
-          builder: (context, constraints) {
-            final width = constraints.maxWidth;
-            return Stack(
-              children: List.generate(_startOffsets.length, (i) {
-                final t =
-                    (_controller.value * _speeds[i] + _startOffsets[i]) % 1.0;
-                final left = t * (width + _sizes[i]) - _sizes[i];
-                return Positioned(
-                  left: left,
-                  top: constraints.maxHeight * _verticalPositions[i],
-                  child: Opacity(
-                    opacity: 0.16,
-                    child: Container(
-                      width: _sizes[i],
-                      height: _sizes[i] * 0.55,
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(_sizes[i]),
-                      ),
-                    ),
-                  ),
-                );
-              }),
-            );
+      theme: ThemeData(
+        fontFamily: 'Roboto',
+        scaffoldBackgroundColor: Colors.black,
+        pageTransitionsTheme: const PageTransitionsTheme(
+          builders: {
+            TargetPlatform.android: FadeUpwardsPageTransitionsBuilder(),
+            TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
           },
-        );
-      },
-    );
-  }
-}
-
-class _SirenBar extends StatelessWidget {
-  final double t;
-  final bool topBar;
-  const _SirenBar({required this.t, required this.topBar});
-  @override
-  Widget build(BuildContext context) {
-    final wave = (sin(t * 2 * pi) + 1) / 2;
-    return Container(
-      height: 5,
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            Colors.red.withValues(alpha: 0.15 + 0.65 * wave),
-            Colors.blueAccent.withValues(alpha: 0.15 + 0.65 * (1 - wave)),
-            Colors.red.withValues(alpha: 0.15 + 0.65 * wave),
-            Colors.blueAccent.withValues(alpha: 0.15 + 0.65 * (1 - wave)),
-          ],
-          stops: const [0.0, 0.33, 0.66, 1.0],
         ),
       ),
+      home: const StartScreen(),
     );
   }
 }
 
-class _SirenGlowOverlay extends StatelessWidget {
-  final double t;
-  const _SirenGlowOverlay({required this.t});
-  @override
-  Widget build(BuildContext context) {
-    final wave = (sin(t * 2 * pi) + 1) / 2;
-    return IgnorePointer(
-      child: Container(
-        decoration: BoxDecoration(
-          gradient: RadialGradient(
-            center: const Alignment(0, -0.3),
-            radius: 1.1,
-            colors: [
-              Color.lerp(
-                Colors.blueAccent.withValues(alpha: 0.10),
-                Colors.red.withValues(alpha: 0.10),
-                wave,
-              )!,
-              Colors.transparent,
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _Vignette extends StatelessWidget {
-  const _Vignette();
-  @override
-  Widget build(BuildContext context) {
-    return IgnorePointer(
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          gradient: RadialGradient(
-            center: Alignment.center,
-            radius: 1.15,
-            colors: [Colors.transparent, Colors.black.withValues(alpha: 0.32)],
-            stops: const [0.6, 1.0],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _SparkleField extends StatelessWidget {
-  final double t;
-  const _SparkleField({required this.t});
-  static final List<Offset> _seeds = List.generate(18, (i) {
-    final rnd = Random(i * 97);
-    return Offset(rnd.nextDouble(), rnd.nextDouble());
-  });
-  @override
-  Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final w = constraints.maxWidth;
-        final h = constraints.maxHeight;
-        return Stack(
-          children: List.generate(_seeds.length, (i) {
-            final seed = _seeds[i];
-            final speed = 0.4 + (i % 5) * 0.15;
-            final localT = (t * speed + seed.dx) % 1.0;
-            final dy = h * (1 - localT);
-            final dx = seed.dx * w + sin(localT * 4 * pi + i) * 10;
-            final twinkle = (sin(t * 2 * pi * (2 + i % 3) + i) + 1) / 2;
-            return Positioned(
-              left: dx,
-              top: dy,
-              child: Opacity(
-                opacity: 0.15 + twinkle * 0.35,
-                child: Container(
-                  width: 3,
-                  height: 3,
-                  decoration: const BoxDecoration(
-                    color: Colors.white,
-                    shape: BoxShape.circle,
-                  ),
-                ),
-              ),
-            );
-          }),
-        );
-      },
-    );
-  }
-}
-
-class _SkylineSilhouette extends StatelessWidget {
-  final double t;
-  const _SkylineSilhouette({required this.t});
-  @override
-  Widget build(BuildContext context) {
-    return IgnorePointer(
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          return CustomPaint(
-            size: Size(constraints.maxWidth, 150),
-            painter: _SkylinePainter(t: t),
-          );
-        },
-      ),
-    );
-  }
-}
-
-class _SkylinePainter extends CustomPainter {
-  final double t;
-  _SkylinePainter({required this.t});
-  @override
-  void paint(Canvas canvas, Size size) {
-    final buildingPaint = Paint()..color = Colors.black.withValues(alpha: 0.38);
-    final windowPaint = Paint();
-    final rnd = Random(7);
-    double x = -20;
-    int seed = 0;
-    while (x < size.width + 20) {
-      final w = 34.0 + rnd.nextDouble() * 46;
-      final h = 55.0 + rnd.nextDouble() * 85;
-      final rect = Rect.fromLTWH(x, size.height - h, w, h);
-      canvas.drawRect(rect, buildingPaint);
-      final cols = (w / 12).floor().clamp(1, 6);
-      final rows = (h / 16).floor().clamp(1, 8);
-      for (int r = 0; r < rows; r++) {
-        for (int c = 0; c < cols; c++) {
-          seed++;
-          if (seed % 3 == 0) continue;
-          final blink = (sin(t * 2 * pi * 1.3 + seed * 0.7) + 1) / 2;
-          final alpha = (0.10 + blink * 0.22).clamp(0.0, 0.32);
-          windowPaint.color = Colors.amberAccent.withValues(alpha: alpha);
-          canvas.drawRect(
-            Rect.fromLTWH(rect.left + 6 + c * 12, rect.top + 8 + r * 16, 5, 8),
-            windowPaint,
-          );
-        }
-      }
-      x += w + 6;
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant _SkylinePainter oldDelegate) {
-    return oldDelegate.t != t;
-  }
-}
-
-class _RadarRingPainter extends CustomPainter {
-  final Color color;
-  _RadarRingPainter({required this.color});
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = color
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 2.2
-      ..strokeCap = StrokeCap.round;
-    final center = Offset(size.width / 2, size.height / 2);
-    final radius = size.width / 2;
-    const dashCount = 20;
-    for (int i = 0; i < dashCount; i++) {
-      if (i.isEven) {
-        final startAngle = (2 * pi / dashCount) * i;
-        const sweep = (2 * pi / dashCount) * 0.6;
-        canvas.drawArc(
-          Rect.fromCircle(center: center, radius: radius),
-          startAngle,
-          sweep,
-          false,
-          paint,
-        );
-      }
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant _RadarRingPainter oldDelegate) {
-    return oldDelegate.color != color;
-  }
+// ============================================================
+// Background star / particle field used behind the Start Screen
+// ============================================================
+class _BgParticle {
+  double x, y, speed, size, twinkle;
+  _BgParticle({required this.x, required this.y, required this.speed, required this.size, required this.twinkle});
 }
 
 class StartScreen extends StatefulWidget {
@@ -406,25 +138,19 @@ class StartScreen extends StatefulWidget {
   State<StartScreen> createState() => _StartScreenState();
 }
 
-class _StartScreenState extends State<StartScreen>
-    with TickerProviderStateMixin {
+class _StartScreenState extends State<StartScreen> with TickerProviderStateMixin {
   late AnimationController _bounceController;
   late Animation<double> _bounceAnimation;
-  late AnimationController _introController;
-  late Animation<double> _titleFade;
-  late Animation<double> _titleSlide;
-  late Animation<double> _logoFade;
-  late Animation<double> _logoScale;
-  late Animation<double> _logoRotate;
-  late Animation<double> _bottomFade;
-  late Animation<double> _bottomSlide;
   late AnimationController _pulseController;
   late Animation<double> _pulseAnimation;
-  late AnimationController _bgController;
   late AnimationController _glowController;
   late AnimationController _ringRotateController;
   late AnimationController _shimmerController;
-  late AnimationController _sirenController;
+  late AnimationController _entranceController;
+  late AnimationController _particleController;
+
+  final Random _rand = Random();
+  final List<_BgParticle> _particles = [];
 
   double loadingProgress = 0.0;
   bool isLoaded = false;
@@ -434,99 +160,44 @@ class _StartScreenState extends State<StartScreen>
   void initState() {
     super.initState();
     SoundManager.preload().then((_) {
-      if (mounted) {
-        SoundManager.playBackgroundMusic();
-      }
+      if (mounted) SoundManager.playBackgroundMusic();
     });
+
+    for (int i = 0; i < 40; i++) {
+      _particles.add(_BgParticle(
+        x: _rand.nextDouble(),
+        y: _rand.nextDouble(),
+        speed: 0.05 + _rand.nextDouble() * 0.15,
+        size: 1.0 + _rand.nextDouble() * 2.4,
+        twinkle: _rand.nextDouble(),
+      ));
+    }
 
     _bounceController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 900),
     )..repeat(reverse: true);
-
     _bounceAnimation = Tween<double>(begin: 0, end: 14).animate(
       CurvedAnimation(parent: _bounceController, curve: Curves.easeInOut),
     );
 
-    _introController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1400),
-    )..forward();
-
-    _titleFade = CurvedAnimation(
-      parent: _introController,
-      curve: const Interval(0.0, 0.45, curve: Curves.easeOut),
-    );
-    _titleSlide = Tween<double>(begin: -30, end: 0).animate(
-      CurvedAnimation(
-        parent: _introController,
-        curve: const Interval(0.0, 0.45, curve: Curves.easeOutBack),
-      ),
-    );
-    _logoFade = CurvedAnimation(
-      parent: _introController,
-      curve: const Interval(0.2, 0.75, curve: Curves.easeOut),
-    );
-    _logoScale = Tween<double>(begin: 0.3, end: 1.0).animate(
-      CurvedAnimation(
-        parent: _introController,
-        curve: const Interval(0.2, 0.85, curve: Curves.elasticOut),
-      ),
-    );
-    _logoRotate = Tween<double>(begin: -0.5, end: 0.0).animate(
-      CurvedAnimation(
-        parent: _introController,
-        curve: const Interval(0.2, 0.75, curve: Curves.easeOutCubic),
-      ),
-    );
-    _bottomFade = CurvedAnimation(
-      parent: _introController,
-      curve: const Interval(0.55, 1.0, curve: Curves.easeOut),
-    );
-    _bottomSlide = Tween<double>(begin: 26, end: 0).animate(
-      CurvedAnimation(
-        parent: _introController,
-        curve: const Interval(0.55, 1.0, curve: Curves.easeOutCubic),
-      ),
-    );
-
     _pulseController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 900),
+      duration: const Duration(milliseconds: 850),
     )..repeat(reverse: true);
-    _pulseAnimation = Tween<double>(begin: 1.0, end: 1.06).animate(
+    _pulseAnimation = Tween<double>(begin: 1.0, end: 1.07).animate(
       CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
     );
-    _bgController = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 5),
-    )..repeat(reverse: true);
-    _glowController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 2200),
-    )..repeat();
-    _ringRotateController = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 10),
-    )..repeat();
-    _shimmerController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1600),
-    )..repeat();
-    _sirenController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1800),
-    )..repeat();
 
-    const totalDuration = Duration(milliseconds: 2200);
-    const tickTime = Duration(milliseconds: 30);
-    final totalTicks = totalDuration.inMilliseconds / tickTime.inMilliseconds;
-    int currentTick = 0;
+    _glowController = AnimationController(vsync: this, duration: const Duration(milliseconds: 2200))..repeat();
+    _ringRotateController = AnimationController(vsync: this, duration: const Duration(seconds: 8))..repeat();
+    _shimmerController = AnimationController(vsync: this, duration: const Duration(milliseconds: 1500))..repeat();
+    _particleController = AnimationController(vsync: this, duration: const Duration(seconds: 60))..repeat();
+    _entranceController = AnimationController(vsync: this, duration: const Duration(milliseconds: 1100))..forward();
 
-    loadingTimer = Timer.periodic(tickTime, (timer) {
-      currentTick++;
+    loadingTimer = Timer.periodic(const Duration(milliseconds: 25), (timer) {
       setState(() {
-        loadingProgress = (currentTick / totalTicks).clamp(0.0, 1.0);
+        loadingProgress = (loadingProgress + 0.02).clamp(0.0, 1.0);
         if (loadingProgress >= 1.0) {
           isLoaded = true;
           timer.cancel();
@@ -538,383 +209,327 @@ class _StartScreenState extends State<StartScreen>
   @override
   void dispose() {
     _bounceController.dispose();
-    _introController.dispose();
     _pulseController.dispose();
-    _bgController.dispose();
     _glowController.dispose();
     _ringRotateController.dispose();
     _shimmerController.dispose();
-    _sirenController.dispose();
+    _particleController.dispose();
+    _entranceController.dispose();
     loadingTimer?.cancel();
     super.dispose();
   }
 
   void goToGame() {
+    HapticFeedback.mediumImpact();
     Navigator.of(context).pushReplacement(
       PageRouteBuilder(
-        transitionDuration: const Duration(milliseconds: 550),
-        pageBuilder: (context, animation, secondaryAnimation) =>
-            const GameScreen(),
-        transitionsBuilder: (context, animation, secondaryAnimation, child) {
-          final fade = CurvedAnimation(
-            parent: animation,
-            curve: Curves.easeOut,
-          );
-          final scale = Tween<double>(begin: 1.06, end: 1.0).animate(
-            CurvedAnimation(parent: animation, curve: Curves.easeOutCubic),
-          );
+        transitionDuration: const Duration(milliseconds: 650),
+        pageBuilder: (context, animation, _) => const GameScreen(),
+        transitionsBuilder: (context, animation, _, child) {
+          final curved = CurvedAnimation(parent: animation, curve: Curves.easeOutCubic);
           return FadeTransition(
-            opacity: fade,
-            child: ScaleTransition(scale: scale, child: child),
+            opacity: curved,
+            child: ScaleTransition(
+              scale: Tween<double>(begin: 1.06, end: 1.0).animate(curved),
+              child: child,
+            ),
           );
         },
       ),
     );
   }
 
-  Widget _buildGlowRing(double phase) {
-    final t = (_glowController.value + phase) % 1.0;
-    final scale = 0.55 + t * 0.9;
-    final opacity = (1 - t) * 0.32;
-    return Opacity(
-      opacity: opacity,
-      child: Transform.scale(
-        scale: scale,
-        child: Container(
-          width: 145,
-          height: 145,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            border: Border.all(color: Colors.amberAccent, width: 2.5),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildLogoImage() {
-    return ClipOval(
-      child: Container(
-        width: 125,
-        height: 125,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          border: Border.all(color: Colors.white, width: 3.5),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.amber.withValues(alpha: 0.65),
-              blurRadius: 26,
-              spreadRadius: 3,
-            ),
-            const BoxShadow(
-              color: Colors.black45,
-              blurRadius: 10,
-              offset: Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Image.asset(
-          'assets/icon/icon.png',
-          fit: BoxFit.cover,
-          errorBuilder: (context, error, stackTrace) {
-            return Container(
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [Colors.amber, Colors.deepOrange],
-                ),
-              ),
-              child: const Icon(
-                Icons.local_police_rounded,
-                color: Colors.white,
-                size: 65,
-              ),
-            );
-          },
-        ),
-      ),
-    );
-  }
-
-  Widget _buildLoadingBar() {
-    return Column(
-      key: const ValueKey('loading'),
-      children: [
-        ClipRRect(
-          borderRadius: BorderRadius.circular(20),
-          child: SizedBox(
-            height: 14,
-            child: Stack(
-              children: [
-                LinearProgressIndicator(
-                  value: loadingProgress,
-                  minHeight: 14,
-                  backgroundColor: Colors.black26,
-                  valueColor: const AlwaysStoppedAnimation<Color>(Colors.amber),
-                ),
-              ],
-            ),
-          ),
-        ),
-        const SizedBox(height: 10),
-        Text(
-          'Loading Epic Experience... ${(loadingProgress * 100).toInt()}%',
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildPlayButton() {
-    return AnimatedBuilder(
-      key: const ValueKey('play'),
-      animation: _pulseAnimation,
-      builder: (context, child) {
-        return Transform.scale(scale: _pulseAnimation.value, child: child);
-      },
-      child: ElevatedButton.icon(
-        onPressed: goToGame,
-        icon: const Icon(Icons.play_arrow_rounded, size: 30),
-        label: const Text(
-          'EPIC PLAY',
-          style: TextStyle(
-            fontSize: 22,
-            fontWeight: FontWeight.w900,
-            letterSpacing: 1.5,
-          ),
-        ),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.amber,
-          foregroundColor: Colors.black,
-          padding: const EdgeInsets.symmetric(vertical: 18),
-          minimumSize: const Size(double.infinity, 60),
-          elevation: 12,
-          shadowColor: Colors.amberAccent.withValues(alpha: 0.5),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(30),
-          ),
-        ),
-      ),
+  Animation<double> _staggered(double start, double end) {
+    return CurvedAnimation(
+      parent: _entranceController,
+      curve: Interval(start, end, curve: Curves.easeOutCubic),
     );
   }
 
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
+    final titleFade = _staggered(0.0, 0.55);
+    final logoFade = _staggered(0.15, 0.7);
+    final ctaFade = _staggered(0.35, 1.0);
+
     return Scaffold(
-      body: AnimatedBuilder(
-        animation: _bgController,
-        builder: (context, child) {
-          final t = _bgController.value;
-          return Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  Color.lerp(Colors.green[900], Colors.green[700], t)!,
-                  Color.lerp(Colors.teal[800], Colors.green[800], t)!,
-                  Color.lerp(Colors.blueGrey[900], Colors.teal[900], t)!,
-                ],
-                stops: const [0.0, 0.55, 1.0],
-              ),
-            ),
-            child: child,
-          );
-        },
-        child: Stack(
-          children: [
-            const Positioned.fill(child: _FloatingClouds()),
-            AnimatedBuilder(
-              animation: _sirenController,
-              builder: (context, _) => Positioned.fill(
-                child: _SparkleField(t: _sirenController.value),
-              ),
-            ),
-            AnimatedBuilder(
-              animation: _sirenController,
-              builder: (context, _) => Positioned.fill(
-                child: _SirenGlowOverlay(t: _sirenController.value),
-              ),
-            ),
-            AnimatedBuilder(
-              animation: _sirenController,
-              builder: (context, _) => Positioned(
-                left: 0,
-                right: 0,
-                bottom: 0,
-                child: _SkylineSilhouette(t: _sirenController.value),
-              ),
-            ),
-            const Positioned.fill(child: _Vignette()),
-            AnimatedBuilder(
-              animation: _sirenController,
-              builder: (context, _) => Positioned(
-                top: 0,
-                left: 0,
-                right: 0,
-                child: _SirenBar(t: _sirenController.value, topBar: true),
-              ),
-            ),
-            AnimatedBuilder(
-              animation: _sirenController,
-              builder: (context, _) => Positioned(
-                bottom: 0,
-                left: 0,
-                right: 0,
-                child: _SirenBar(t: _sirenController.value, topBar: false),
-              ),
-            ),
-            SafeArea(
-              child: Column(
-                children: [
-                  const SizedBox(height: 35),
-                  AnimatedBuilder(
-                    animation: Listenable.merge([
-                      _introController,
-                      _shimmerController,
-                    ]),
-                    builder: (context, child) {
-                      final shimmerT = _shimmerController.value;
-                      return Opacity(
-                        opacity: _titleFade.value,
-                        child: Transform.translate(
-                          offset: Offset(0, _titleSlide.value),
-                          child: ShaderMask(
-                            blendMode: BlendMode.srcIn,
-                            shaderCallback: (bounds) {
-                              return LinearGradient(
-                                colors: const [
-                                  Colors.white,
-                                  Colors.amberAccent,
-                                  Colors.white,
-                                ],
-                                stops: const [0.35, 0.5, 0.65],
-                                begin: Alignment(-1 + 2 * shimmerT, 0),
-                                end: Alignment(1 + 2 * shimmerT, 0),
-                              ).createShader(bounds);
-                            },
-                            child: child,
-                          ),
-                        ),
-                      );
-                    },
-                    child: const Text(
-                      'RUNNER CHASE ELITE',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 34,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: 2.5,
-                        shadows: [Shadow(color: Colors.black54, blurRadius: 8)],
-                      ),
+      body: Stack(
+        children: [
+          // Animated gradient backdrop
+          Positioned.fill(
+            child: AnimatedBuilder(
+              animation: _glowController,
+              builder: (context, _) {
+                final t = _glowController.value;
+                return Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment(-1 + sin(t * 2 * pi) * 0.3, -1),
+                      end: Alignment(1, 1 + cos(t * 2 * pi) * 0.3),
+                      colors: const [Color(0xFF0F2027), Color(0xFF203A43), Color(0xFF2C5364)],
                     ),
                   ),
-                  const SizedBox(height: 6),
-                  AnimatedBuilder(
-                    animation: _introController,
-                    builder: (context, child) {
-                      return Opacity(
-                        opacity: _titleFade.value,
-                        child: Transform.translate(
-                          offset: Offset(0, _titleSlide.value),
+                );
+              },
+            ),
+          ),
+
+          // Drifting star / dust particle field
+          Positioned.fill(
+            child: AnimatedBuilder(
+              animation: _particleController,
+              builder: (context, _) {
+                return CustomPaint(
+                  painter: _StarFieldPainter(particles: _particles, t: _particleController.value),
+                );
+              },
+            ),
+          ),
+
+          // Soft vignette for depth
+          Positioned.fill(
+            child: IgnorePointer(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: RadialGradient(
+                    center: Alignment.center,
+                    radius: 1.1,
+                    colors: [Colors.transparent, Colors.black.withValues(alpha: 0.45)],
+                    stops: const [0.6, 1.0],
+                  ),
+                ),
+              ),
+            ),
+          ),
+
+          SafeArea(
+            child: Column(
+              children: [
+                const SizedBox(height: 40),
+                FadeTransition(
+                  opacity: titleFade,
+                  child: SlideTransition(
+                    position: titleFade.drive(Tween(begin: const Offset(0, -0.3), end: Offset.zero)),
+                    child: AnimatedBuilder(
+                      animation: _shimmerController,
+                      builder: (context, child) {
+                        return ShaderMask(
+                          blendMode: BlendMode.srcIn,
+                          shaderCallback: (bounds) => LinearGradient(
+                            colors: const [Colors.white, Colors.amberAccent, Colors.white],
+                            stops: const [0.3, 0.5, 0.7],
+                            begin: Alignment(-1 + 2 * _shimmerController.value, 0),
+                            end: Alignment(1 + 2 * _shimmerController.value, 0),
+                          ).createShader(bounds),
                           child: child,
+                        );
+                      },
+                      child: const Text(
+                        'RUNNER CHASE OVERDRIVE',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 30,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 2,
+                          shadows: [Shadow(color: Colors.black45, blurRadius: 12, offset: Offset(0, 3))],
                         ),
-                      );
-                    },
-                    child: Text(
-                      'EPIC EDITION  •  5S SHIELD  •  LEVEL 4 DIFFICULTY',
-                      style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.8),
-                        fontSize: 10.5,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 2.5,
                       ),
                     ),
                   ),
-                  const Spacer(),
-                  AnimatedBuilder(
-                    animation: Listenable.merge([
-                      _bounceAnimation,
-                      _introController,
-                      _glowController,
-                      _ringRotateController,
-                    ]),
-                    builder: (context, _) {
-                      return Opacity(
-                        opacity: _logoFade.value,
-                        child: Transform.translate(
+                ),
+                const SizedBox(height: 6),
+                FadeTransition(
+                  opacity: titleFade,
+                  child: const Text(
+                    'DYNAMIC THEMES • 5S SHIELD • BLAST PHYSICS',
+                    style: TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 2),
+                  ),
+                ),
+                const Spacer(),
+                FadeTransition(
+                  opacity: logoFade,
+                  child: ScaleTransition(
+                    scale: logoFade,
+                    child: AnimatedBuilder(
+                      animation: Listenable.merge([_bounceAnimation, _glowController, _ringRotateController]),
+                      builder: (context, _) {
+                        return Transform.translate(
                           offset: Offset(0, -_bounceAnimation.value),
-                          child: Transform.rotate(
-                            angle: _logoRotate.value,
-                            child: Transform.scale(
-                              scale: _logoScale.value,
-                              child: SizedBox(
-                                width: 190,
-                                height: 190,
-                                child: Stack(
-                                  alignment: Alignment.center,
-                                  children: [
-                                    _buildGlowRing(0.0),
-                                    _buildGlowRing(0.5),
-                                    Transform.rotate(
-                                      angle:
-                                          _ringRotateController.value * 2 * pi,
-                                      child: CustomPaint(
-                                        size: const Size(165, 165),
-                                        painter: _RadarRingPainter(
-                                          color: Colors.amberAccent.withValues(
-                                            alpha: 0.5,
+                          child: SizedBox(
+                            width: 190,
+                            height: 190,
+                            child: Stack(
+                              alignment: Alignment.center,
+                              children: [
+                                Transform.rotate(
+                                  angle: _ringRotateController.value * 2 * pi,
+                                  child: CustomPaint(
+                                    size: const Size(178, 178),
+                                    painter: _DashedRingPainter(color: Colors.amberAccent.withValues(alpha: 0.55)),
+                                  ),
+                                ),
+                                Container(
+                                  width: 150 + (sin(_glowController.value * pi * 2) * 10),
+                                  height: 150 + (sin(_glowController.value * pi * 2) * 10),
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    border: Border.all(color: Colors.amberAccent.withValues(alpha: 0.5), width: 3),
+                                  ),
+                                ),
+                                ClipOval(
+                                  child: Container(
+                                    width: 120,
+                                    height: 120,
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      border: Border.all(color: Colors.white, width: 3),
+                                      boxShadow: const [BoxShadow(color: Colors.amber, blurRadius: 24, spreadRadius: 3)],
+                                    ),
+                                    child: Image.asset(
+                                      'assets/icon/icon.png',
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (_, __, ___) => Container(
+                                        decoration: const BoxDecoration(
+                                          gradient: LinearGradient(colors: [Colors.amber, Colors.deepOrange], begin: Alignment.topLeft, end: Alignment.bottomRight),
+                                        ),
+                                        child: const Icon(Icons.flash_on_rounded, color: Colors.white, size: 60),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ),
+                const Spacer(),
+                Padding(
+                  padding: EdgeInsets.symmetric(horizontal: size.width * 0.12, vertical: 30),
+                  child: FadeTransition(
+                    opacity: ctaFade,
+                    child: SlideTransition(
+                      position: ctaFade.drive(Tween(begin: const Offset(0, 0.3), end: Offset.zero)),
+                      child: isLoaded
+                          ? AnimatedBuilder(
+                              animation: _pulseAnimation,
+                              builder: (context, child) => Transform.scale(scale: _pulseAnimation.value, child: child),
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(30),
+                                  boxShadow: [BoxShadow(color: Colors.amber.withValues(alpha: 0.5), blurRadius: 24, spreadRadius: 1)],
+                                ),
+                                child: ElevatedButton.icon(
+                                  onPressed: goToGame,
+                                  icon: const Icon(Icons.play_arrow_rounded, size: 30),
+                                  label: const Text('OVERDRIVE START', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900)),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.amber,
+                                    foregroundColor: Colors.black,
+                                    padding: const EdgeInsets.symmetric(vertical: 18),
+                                    minimumSize: const Size(double.infinity, 58),
+                                    elevation: 12,
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                                  ),
+                                ),
+                              ),
+                            )
+                          : Column(
+                              children: [
+                                ClipRRect(
+                                  borderRadius: BorderRadius.circular(20),
+                                  child: Stack(
+                                    children: [
+                                      LinearProgressIndicator(
+                                        value: loadingProgress,
+                                        minHeight: 14,
+                                        backgroundColor: Colors.black38,
+                                        valueColor: const AlwaysStoppedAnimation<Color>(Colors.amberAccent),
+                                      ),
+                                      Positioned.fill(
+                                        child: AnimatedBuilder(
+                                          animation: _shimmerController,
+                                          builder: (context, _) => FractionallySizedBox(
+                                            alignment: Alignment(-1 + 2 * _shimmerController.value, 0),
+                                            widthFactor: 0.25,
+                                            child: Container(
+                                              decoration: BoxDecoration(
+                                                gradient: LinearGradient(
+                                                  colors: [Colors.white.withValues(alpha: 0), Colors.white.withValues(alpha: 0.5), Colors.white.withValues(alpha: 0)],
+                                                ),
+                                              ),
+                                            ),
                                           ),
                                         ),
                                       ),
-                                    ),
-                                    _buildLogoImage(),
-                                  ],
+                                    ],
+                                  ),
                                 ),
-                              ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  'LOADING ${(loadingProgress * 100).toInt()}%',
+                                  style: const TextStyle(color: Colors.white54, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 2),
+                                ),
+                              ],
                             ),
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                  const Spacer(),
-                  AnimatedBuilder(
-                    animation: _introController,
-                    builder: (context, child) {
-                      return Opacity(
-                        opacity: _bottomFade.value,
-                        child: Transform.translate(
-                          offset: Offset(0, _bottomSlide.value),
-                          child: child,
-                        ),
-                      );
-                    },
-                    child: Padding(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: size.width * 0.12,
-                        vertical: 30,
-                      ),
-                      child: isLoaded ? _buildPlayButton() : _buildLoadingBar(),
                     ),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 }
 
-enum ItemType { coin, keyItem, car, barricade, bush, magnet }
+class _StarFieldPainter extends CustomPainter {
+  final List<_BgParticle> particles;
+  final double t;
+  _StarFieldPainter({required this.particles, required this.t});
+  @override
+  void paint(Canvas canvas, Size size) {
+    for (final p in particles) {
+      final y = (p.y + t * p.speed) % 1.0;
+      final opacity = (0.25 + 0.65 * (0.5 + 0.5 * sin((t * 6 + p.twinkle) * 2 * pi))).clamp(0.0, 1.0);
+      final paint = Paint()..color = Colors.white.withValues(alpha: opacity * 0.6);
+      canvas.drawCircle(Offset(p.x * size.width, y * size.height), p.size, paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _StarFieldPainter oldDelegate) => true;
+}
+
+class _DashedRingPainter extends CustomPainter {
+  final Color color;
+  _DashedRingPainter({required this.color});
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..strokeWidth = 2.5
+      ..style = PaintingStyle.stroke;
+    final radius = size.width / 2;
+    const dashCount = 26;
+    for (int i = 0; i < dashCount; i++) {
+      final angle1 = (i / dashCount) * 2 * pi;
+      final angle2 = angle1 + (pi / dashCount) * 0.6;
+      final p1 = Offset(radius + radius * cos(angle1), radius + radius * sin(angle1));
+      final p2 = Offset(radius + radius * cos(angle2), radius + radius * sin(angle2));
+      canvas.drawLine(p1, p2, paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _DashedRingPainter oldDelegate) => false;
+}
+
+enum ItemType { coin, keyItem, car, barricade, bush, shield, turbo, magnet }
 
 class FallingItem {
   int lane;
@@ -922,37 +537,60 @@ class FallingItem {
   ItemType type;
   String? carImage;
   bool dodged = false;
-
-  FallingItem({
-    required this.lane,
-    required this.y,
-    required this.type,
-    this.carImage,
-  });
+  double spawnT = 0; // used for a small entrance pop animation
+  FallingItem({required this.lane, required this.y, required this.type, this.carImage});
 }
 
 class FloatingPopup {
   double x;
   double y;
   int life;
-  static const int maxLife = 30;
+  static const int maxLife = 35;
   final String text;
-
-  FloatingPopup({
-    required this.x,
-    required this.y,
-    required this.text,
-    this.life = maxLife,
-  });
+  final Color color;
+  FloatingPopup({required this.x, required this.y, required this.text, this.color = Colors.amberAccent, this.life = maxLife});
 
   double get scale {
     final t = 1 - (life / maxLife);
-    if (t < 0.2) {
-      final p = t / 0.2;
-      return 0.4 + 0.8 * Curves.easeOutBack.transform(p);
-    }
-    return 1.0;
+    return t < 0.2 ? 0.5 + 0.7 * Curves.easeOutBack.transform(t / 0.2) : 1.0;
   }
+}
+
+class BlastShockwave {
+  double x;
+  double y;
+  int life;
+  static const int maxLife = 22;
+  BlastShockwave({required this.x, required this.y, this.life = maxLife});
+}
+
+class DebrisParticle {
+  double x;
+  double y;
+  double vx;
+  double vy;
+  Color color;
+  int life;
+  static const int maxLife = 26;
+  DebrisParticle({required this.x, required this.y, required this.vx, required this.vy, required this.color, this.life = maxLife});
+}
+
+// Parallax background building/tree used for depth
+class _SceneryObject {
+  double x; // 0..1 across width
+  double baseY;
+  double scale;
+  bool isBuilding;
+  Color color;
+  _SceneryObject({required this.x, required this.baseY, required this.scale, required this.isBuilding, required this.color});
+}
+
+// Ground-level dust puff spawned on jump landing
+class _DustPuff {
+  double x, y;
+  int life;
+  static const int maxLife = 18;
+  _DustPuff({required this.x, required this.y, this.life = maxLife});
 }
 
 class GameScreen extends StatefulWidget {
@@ -965,9 +603,6 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   static const int laneCount = 3;
 
   bool isIntroPhase = true;
-  late AnimationController _tapPulseController;
-  late AnimationController _introIdleBobController;
-
   int playerLane = 1;
   double playerY = 0.7;
   double playerLaneAnim = 1.0;
@@ -978,13 +613,16 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   int policeLaneDelayCounter = 0;
 
   double sceneryOffset = 0;
+  double roadOffset = 0;
+  double speed = 0.0065;
 
   List<FallingItem> items = [];
   List<FloatingPopup> popups = [];
-  List<_DustParticle> dustParticles = [];
-  List<_NeonSparkle> neonParticles = [];
-
-  double speed = 0.006;
+  List<BlastShockwave> shockwaves = [];
+  List<DebrisParticle> debris = [];
+  List<_TrailParticle> trailParticles = [];
+  List<_SceneryObject> scenery = [];
+  List<_DustPuff> dustPuffs = [];
 
   int score = 0;
   int highestScore = 0;
@@ -996,8 +634,16 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
 
   int coinCombo = 0;
   int scoreMultiplier = 1;
-  String? activeMilestoneText;
-  int milestoneTimer = 0;
+  String? activeBanner;
+  int bannerTimer = 0;
+
+  int levelFlashTimer = 0;
+  bool _wasJumping = false;
+
+  // Active Power-up Timers
+  int shieldTimer = 0; // 5 Seconds (300 ticks)
+  int turboTimer = 0;  // 3.5 Seconds (210 ticks)
+  int magnetTimer = 0; // 6 Seconds (360 ticks)
 
   bool isGameOver = false;
   bool isArrested = false;
@@ -1011,15 +657,9 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   Timer? reviveTimer;
   bool isRevivingCloud = false;
 
-  // 5-Second Shield Effect state (approx 300 ticks)
-  bool hasMagnetShield = false;
-  int magnetShieldTimer = 0;
-
   final Random random = Random();
-
   int tickCounter = 0;
-  double roadOffset = 0;
-  int nextSpawnTick = 35;
+  int nextSpawnTick = 30;
 
   double dragStartX = 0;
   double dragStartY = 0;
@@ -1029,91 +669,41 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   static const int jumpDuration = 20;
   static const double jumpHeight = 90;
 
-  bool policeIsJumping = false;
-  int policeJumpTick = 0;
-  int pendingPoliceJumpDelay = 0;
-
   late AnimationController _shakeController;
   late AnimationController _scoreBumpController;
   late Animation<double> _scoreBumpAnimation;
+  late AnimationController _pulseAuraController;
+  late AnimationController _hudEntranceController;
   late AnimationController _gameOverController;
-  late AnimationController _gameOverPulseController;
-  late AnimationController _levelUpController;
-  late AnimationController _shieldPulseController;
 
   @override
   void initState() {
     super.initState();
-    _shakeController =
-        AnimationController(
-          vsync: this,
-          duration: const Duration(milliseconds: 500),
-        )..addListener(() {
-          if (mounted) setState(() {});
-        });
+    _shakeController = AnimationController(vsync: this, duration: const Duration(milliseconds: 450))
+      ..addListener(() => setState(() {}));
+    _scoreBumpController = AnimationController(vsync: this, duration: const Duration(milliseconds: 240))
+      ..addListener(() => setState(() {}));
+    _scoreBumpAnimation = Tween<double>(begin: 1.0, end: 1.35).animate(_scoreBumpController);
+    _pulseAuraController = AnimationController(vsync: this, duration: const Duration(milliseconds: 550))..repeat(reverse: true);
+    _hudEntranceController = AnimationController(vsync: this, duration: const Duration(milliseconds: 700))..forward();
+    _gameOverController = AnimationController(vsync: this, duration: const Duration(milliseconds: 900));
 
-    _scoreBumpController =
-        AnimationController(
-          vsync: this,
-          duration: const Duration(milliseconds: 260),
-        )..addListener(() {
-          if (mounted) setState(() {});
-        });
-
-    _scoreBumpAnimation = TweenSequence<double>([
-      TweenSequenceItem(
-        tween: Tween(
-          begin: 1.0,
-          end: 1.35,
-        ).chain(CurveTween(curve: Curves.easeOut)),
-        weight: 40,
-      ),
-      TweenSequenceItem(
-        tween: Tween(
-          begin: 1.35,
-          end: 1.0,
-        ).chain(CurveTween(curve: Curves.easeIn)),
-        weight: 60,
-      ),
-    ]).animate(_scoreBumpController);
-
-    _gameOverController =
-        AnimationController(
-          vsync: this,
-          duration: const Duration(milliseconds: 700),
-        )..addListener(() {
-          if (mounted) setState(() {});
-        });
-
-    _gameOverPulseController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1100),
-    )..repeat(reverse: true);
-
-    _levelUpController =
-        AnimationController(
-          vsync: this,
-          duration: const Duration(milliseconds: 1400),
-        )..addListener(() {
-          if (mounted) setState(() {});
-        });
-
-    _shieldPulseController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 600),
-    )..repeat(reverse: true);
-
-    _tapPulseController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 800),
-    )..repeat(reverse: true);
-
-    _introIdleBobController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 600),
-    )..repeat(reverse: true);
-
+    _generateScenery();
     setupGame();
+  }
+
+  void _generateScenery() {
+    scenery.clear();
+    for (int i = 0; i < 10; i++) {
+      final left = random.nextBool();
+      scenery.add(_SceneryObject(
+        x: left ? random.nextDouble() * 0.12 : 0.88 + random.nextDouble() * 0.12,
+        baseY: i * 0.28,
+        scale: 0.7 + random.nextDouble() * 0.8,
+        isBuilding: random.nextBool(),
+        color: [Colors.blueGrey.shade700, Colors.indigo.shade700, Colors.teal.shade700, Colors.brown.shade600][random.nextInt(4)],
+      ));
+    }
   }
 
   void setupGame() {
@@ -1122,35 +712,31 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     reviveTimer?.cancel();
     items.clear();
     popups.clear();
-    dustParticles.clear();
-    neonParticles.clear();
+    shockwaves.clear();
+    debris.clear();
+    trailParticles.clear();
+    dustPuffs.clear();
 
     score = 0;
     coins = 0;
     keys = 0;
     level = 1;
-    speed = 0.006;
-    hasMagnetShield = false;
-    magnetShieldTimer = 0;
+    speed = 0.0065;
+    shieldTimer = 0;
+    turboTimer = 0;
+    magnetTimer = 0;
     coinCombo = 0;
     scoreMultiplier = 1;
-    activeMilestoneText = null;
-    milestoneTimer = 0;
+    activeBanner = null;
+    levelFlashTimer = 0;
 
     playerLane = 1;
     playerLaneAnim = 1.0;
-
-    isIntroPhase = true;
-    policeY = 1.2;
     policeLane = 1;
     policeLaneAnim = 1.0;
-    policeLaneDelayCounter = 0;
+    policeY = 1.2;
 
-    sceneryOffset = 0;
-    tickCounter = 0;
-    roadOffset = 0;
-    nextSpawnTick = 35;
-
+    isIntroPhase = true;
     isGameOver = false;
     isArrested = false;
     isPaused = false;
@@ -1160,16 +746,13 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
 
     isJumping = false;
     jumpTick = 0;
-    policeIsJumping = false;
-    policeJumpTick = 0;
-    pendingPoliceJumpDelay = 0;
+    tickCounter = 0;
+    nextSpawnTick = 30;
 
-    _shakeController.reset();
-    _scoreBumpController.reset();
     _gameOverController.reset();
-    _levelUpController.reset();
+    _hudEntranceController.forward(from: 0);
 
-    gameTimer = Timer.periodic(const Duration(milliseconds: 16), (timer) {
+    gameTimer = Timer.periodic(const Duration(milliseconds: 16), (_) {
       if (isIntroPhase) {
         setState(() {});
       } else {
@@ -1179,51 +762,64 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   }
 
   void startChase() {
-    setState(() {
-      isIntroPhase = false;
-    });
+    setState(() => isIntroPhase = false);
     SoundManager.playBackgroundMusic();
+  }
+
+  void triggerShockwave(double lane, double y) {
+    shockwaves.add(BlastShockwave(x: lane, y: y));
+    for (int i = 0; i < 18; i++) {
+      debris.add(
+        DebrisParticle(
+          x: lane,
+          y: y,
+          vx: (random.nextDouble() * 14 - 7),
+          vy: (random.nextDouble() * 14 - 7),
+          color: [Colors.orangeAccent, Colors.cyanAccent, Colors.amberAccent, Colors.white][random.nextInt(4)],
+        ),
+      );
+    }
+    _shakeController.forward(from: 0);
+    HapticFeedback.mediumImpact();
+  }
+
+  void togglePause() {
+    if (isGameOver || isIntroPhase || showRevivePrompt) return;
+    setState(() => isPaused = !isPaused);
   }
 
   void updateGame() {
     if (isGameOver || isPaused || showRevivePrompt) return;
     setState(() {
       tickCounter++;
-      roadOffset += speed * 500;
+      final currentSpeed = turboTimer > 0 ? speed * 1.85 : speed;
+
+      roadOffset += currentSpeed * 500;
       if (roadOffset > 80) roadOffset = 0;
+      sceneryOffset += currentSpeed * 260;
+      if (sceneryOffset > 1.0) sceneryOffset -= 1.0;
 
-      sceneryOffset += speed * 260;
-      if (sceneryOffset > _SceneryPainter.patternHeight) {
-        sceneryOffset -= _SceneryPainter.patternHeight;
-      }
-
-      playerLaneAnim += (playerLane - playerLaneAnim) * 0.28;
+      playerLaneAnim += (playerLane - playerLaneAnim) * 0.32;
       policeLaneAnim += (policeLane - policeLaneAnim) * 0.22;
 
-      // 5-Second Shield Timer countdown (300 ticks = ~5 seconds)
-      if (hasMagnetShield) {
-        magnetShieldTimer--;
-        if (magnetShieldTimer <= 0) {
-          hasMagnetShield = false;
-        }
+      // Decrement Power-up timers
+      if (shieldTimer > 0) shieldTimer--;
+      if (turboTimer > 0) turboTimer--;
+      if (magnetTimer > 0) magnetTimer--;
+      if (bannerTimer > 0) {
+        bannerTimer--;
+        if (bannerTimer <= 0) activeBanner = null;
       }
+      if (levelFlashTimer > 0) levelFlashTimer--;
 
-      if (milestoneTimer > 0) {
-        milestoneTimer--;
-        if (milestoneTimer <= 0) activeMilestoneText = null;
-      }
-
+      // Police AI tracking
       policeLaneDelayCounter++;
-      if (policeLaneDelayCounter > 15) {
+      if (policeLaneDelayCounter > 16) {
         policeLaneDelayCounter = 0;
-        if (policeLane < playerLane) {
-          policeLane++;
-        } else if (policeLane > playerLane) {
-          policeLane--;
-        }
+        if (policeLane < playerLane) policeLane++;
+        else if (policeLane > playerLane) policeLane--;
       }
-
-      double targetPoliceY = playerY + 0.13;
+      double targetPoliceY = turboTimer > 0 ? 1.3 : playerY + 0.13;
       policeY += (targetPoliceY - policeY) * 0.1;
 
       if (isJumping) {
@@ -1233,52 +829,39 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
           jumpTick = 0;
         }
       }
+      // Landing dust puff (edge-triggered when jump just ended)
+      if (_wasJumping && !isJumping) {
+        dustPuffs.add(_DustPuff(x: playerLaneAnim, y: playerY + 0.07));
+        dustPuffs.add(_DustPuff(x: playerLaneAnim - 0.15, y: playerY + 0.08));
+        dustPuffs.add(_DustPuff(x: playerLaneAnim + 0.15, y: playerY + 0.08));
+      }
+      _wasJumping = isJumping;
+      for (var d in dustPuffs) { d.life--; }
+      dustPuffs.removeWhere((d) => d.life <= 0);
 
-      if (pendingPoliceJumpDelay > 0) {
-        pendingPoliceJumpDelay--;
-        if (pendingPoliceJumpDelay == 0 && !policeIsJumping) {
-          policeIsJumping = true;
-          policeJumpTick = 0;
-        }
+      // Police Catch Condition
+      if (policeLane == playerLane && policeY - playerY < 0.08 && !isArrested && !isJumping && shieldTimer == 0 && turboTimer == 0) {
+        arrestPlayer();
+        return;
       }
 
-      if (policeIsJumping) {
-        policeJumpTick++;
-        if (policeJumpTick >= jumpDuration) {
-          policeIsJumping = false;
-          policeJumpTick = 0;
-        }
+      // Trail particle effect
+      if (turboTimer > 0 || coinCombo >= 5) {
+        trailParticles.add(_TrailParticle(
+          lane: playerLaneAnim,
+          y: playerY + 0.06,
+          color: turboTimer > 0 ? Colors.cyanAccent : Colors.amberAccent,
+        ));
       }
+      for (var t in trailParticles) { t.life--; }
+      trailParticles.removeWhere((t) => t.life <= 0);
 
-      if (policeLane == playerLane &&
-          policeY - playerY < 0.09 &&
-          !isArrested &&
-          !isJumping) {
-        if (!hasMagnetShield) {
-          arrestPlayer();
-          return;
-        }
-      }
-
-      double speedProgress = ((speed - 0.006) / (0.024 - 0.006)).clamp(
-        0.0,
-        1.0,
-      );
-
-      // Level 4 Difficulty Tuning with Fair, Playable Hurdles
+      // Level 4 Playable Balance Spawn Generator
       if (tickCounter >= nextSpawnTick) {
-        int itemCount;
-        if (level == 1)
-          itemCount = 1;
-        else if (level == 2)
-          itemCount = 2;
-        else if (level == 3)
-          itemCount = 2;
-        else
-          itemCount = 3; // Level 4 tough balanced layout
-
+        int count = level <= 2 ? 1 : (level == 3 ? 2 : (random.nextDouble() < 0.65 ? 2 : 3));
         List<int> usedLanes = [];
-        for (int i = 0; i < itemCount; i++) {
+
+        for (int i = 0; i < count; i++) {
           int lane;
           do {
             lane = random.nextInt(laneCount);
@@ -1286,119 +869,113 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
           usedLanes.add(lane);
 
           double chance = random.nextDouble();
-          double carChance = (0.30 + (speed - 0.006) * 5).clamp(0.30, 0.50);
-          double coinChance = 0.35;
-
           ItemType type;
-          if (level >= 2 && chance < 0.06) {
+
+          if (level >= 2 && chance < 0.05) {
             type = ItemType.keyItem;
-          } else if (level >= 2 && chance < 0.14) {
-            type = ItemType.magnet; // 5s Shield item
-          } else if (chance < coinChance) {
+          } else if (level >= 2 && chance < 0.11) {
+            type = ItemType.shield; // 5s Shield
+          } else if (level >= 3 && chance < 0.16) {
+            type = ItemType.turbo; // Nitro Turbo Boost
+          } else if (level >= 2 && chance < 0.22) {
+            type = ItemType.magnet; // Super Magnet
+          } else if (chance < 0.58) {
             type = ItemType.coin;
-          } else if (chance < coinChance + carChance) {
+          } else if (chance < 0.82) {
             type = ItemType.car;
-          } else if (chance < coinChance + carChance + 0.15) {
-            type = ItemType.barricade;
           } else {
-            type = ItemType.bush;
+            type = ItemType.barricade;
           }
 
-          String? carImg;
-          if (type == ItemType.car) {
-            carImg = random.nextBool()
-                ? 'assets/game/car1.png'
-                : 'assets/game/car2.png';
-          }
-
-          double spawnY = -0.18 - (i * 0.09);
-          items.add(
-            FallingItem(lane: lane, y: spawnY, type: type, carImage: carImg),
-          );
+          String? carImg = type == ItemType.car ? (random.nextBool() ? 'assets/game/car1.png' : 'assets/game/car2.png') : null;
+          items.add(FallingItem(lane: lane, y: -0.18 - (i * 0.09), type: type, carImage: carImg));
         }
-
-        int baseGap = (44 - (speedProgress * 28)).round();
-        if (baseGap < 14) baseGap = 14;
-        nextSpawnTick = tickCounter + baseGap + random.nextInt(8);
+        nextSpawnTick = tickCounter + (38 - (level * 3)).clamp(16, 40) + random.nextInt(8);
       }
 
+      // Magnet Curved Physics & Item movement
       for (var item in items) {
-        if (hasMagnetShield && item.type == ItemType.coin) {
-          if (item.lane != playerLane) {
-            if (item.lane < playerLane) {
-              item.lane++;
-            } else {
-              item.lane--;
-            }
-          }
+        if (magnetTimer > 0 && item.type == ItemType.coin) {
+          item.lane += (playerLane > item.lane ? 1 : (playerLane < item.lane ? -1 : 0));
         }
-        item.y += speed;
+        item.y += currentSpeed;
+        if (item.spawnT < 1) item.spawnT = (item.spawnT + 0.12).clamp(0.0, 1.0);
       }
 
+      // Shockwaves & Debris lifecycle
+      for (var s in shockwaves) { s.life--; }
+      shockwaves.removeWhere((s) => s.life <= 0);
+      for (var d in debris) {
+        d.x += d.vx * 0.001;
+        d.y += d.vy * 0.001;
+        d.life--;
+      }
+      debris.removeWhere((d) => d.life <= 0);
+
+      // Collision Engine with Invincible Shield & Blast
       for (var item in List<FallingItem>.from(items)) {
         if (item.dodged) continue;
-        if (item.lane == playerLane &&
-            item.y > playerY - 0.06 &&
-            item.y < playerY + 0.06) {
+
+        // Near-Miss / Close Shave Calculation
+        if (item.type == ItemType.car && (item.lane - playerLane).abs() == 1 && (item.y - playerY).abs() < 0.03 && !item.dodged) {
+          item.dodged = true;
+          score += 50;
+          popups.add(FloatingPopup(x: playerLane.toDouble(), y: playerY - 0.08, text: '🔥 CLOSE SHAVE! +50', color: Colors.orangeAccent));
+        }
+
+        if (item.lane == playerLane && item.y > playerY - 0.06 && item.y < playerY + 0.06) {
           if (item.type == ItemType.coin) {
             coins += 1;
             coinCombo++;
-            if (coinCombo >= 5) {
+            if (coinCombo == 5) {
               scoreMultiplier = 2;
-              activeMilestoneText = '🔥 COMBO x2 ACTIVE! 🔥';
-              milestoneTimer = 90;
-            }
-            if (coinCombo >= 10) {
+              activeBanner = '🔥 COMBO x2 ACTIVE! 🔥';
+              bannerTimer = 90;
+            } else if (coinCombo == 10) {
               scoreMultiplier = 3;
-              activeMilestoneText = '⚡ MEGA COMBO x3! ⚡';
-              milestoneTimer = 90;
+              activeBanner = '⚡ MEGA COMBO x3! ⚡';
+              bannerTimer = 90;
             }
             score += 10 * scoreMultiplier;
-            popups.add(
-              FloatingPopup(
-                x: item.lane * 1.0,
-                y: item.y,
-                text: '+${10 * scoreMultiplier}',
-              ),
-            );
+            popups.add(FloatingPopup(x: item.lane.toDouble(), y: item.y, text: '+${10 * scoreMultiplier}'));
             items.remove(item);
             SoundManager.playCoin();
             _scoreBumpController.forward(from: 0);
           } else if (item.type == ItemType.keyItem) {
             keys += 1;
-            score += 50 * scoreMultiplier;
-            popups.add(
-              FloatingPopup(x: item.lane * 1.0, y: item.y, text: 'KEY! +1'),
-            );
+            score += 50;
+            popups.add(FloatingPopup(x: item.lane.toDouble(), y: item.y, text: 'KEY! +1', color: Colors.cyanAccent));
             items.remove(item);
             SoundManager.playCoin();
-            _scoreBumpController.forward(from: 0);
+          } else if (item.type == ItemType.shield) {
+            shieldTimer = 300; // 5 Full Seconds
+            activeBanner = '🛡️ 5-SECOND SHIELD ACTIVE!';
+            bannerTimer = 100;
+            popups.add(FloatingPopup(x: item.lane.toDouble(), y: item.y, text: '🛡️ 5S SHIELD!', color: Colors.purpleAccent));
+            items.remove(item);
+            SoundManager.playCoin();
+          } else if (item.type == ItemType.turbo) {
+            turboTimer = 210; // 3.5 Seconds Turbo
+            activeBanner = '⚡ NITRO TURBO ENGAGED!';
+            bannerTimer = 100;
+            popups.add(FloatingPopup(x: item.lane.toDouble(), y: item.y, text: '⚡ NITRO TURBO!', color: Colors.cyanAccent));
+            items.remove(item);
+            SoundManager.playCoin();
           } else if (item.type == ItemType.magnet) {
-            hasMagnetShield = true;
-            magnetShieldTimer = 300; // Exact 5 seconds invincibility window
-            score += 75;
-            activeMilestoneText = '🛡️ 5S SHIELD ACTIVE! 🛡️';
-            milestoneTimer = 120;
-            popups.add(
-              FloatingPopup(x: item.lane * 1.0, y: item.y, text: '5S SHIELD!'),
-            );
+            magnetTimer = 360; // 6 Seconds Magnet
+            activeBanner = '🧲 COIN MAGNET ACTIVE!';
+            bannerTimer = 100;
+            popups.add(FloatingPopup(x: item.lane.toDouble(), y: item.y, text: '🧲 MAGNET!', color: Colors.tealAccent));
             items.remove(item);
             SoundManager.playCoin();
-            _scoreBumpController.forward(from: 0);
           } else if (isJumping) {
             item.dodged = true;
-            coinCombo = 0;
           } else {
-            // SHIELD PROTECTION CHECK
-            if (hasMagnetShield) {
+            // Blast obstacle if Shield or Turbo is active
+            if (shieldTimer > 0 || turboTimer > 0) {
+              triggerShockwave(item.lane.toDouble(), item.y);
+              popups.add(FloatingPopup(x: item.lane.toDouble(), y: item.y, text: '💥 SMASHED!', color: Colors.redAccent));
               items.remove(item);
-              popups.add(
-                FloatingPopup(
-                  x: item.lane * 1.0,
-                  y: item.y,
-                  text: 'SHIELD BLOCKED!',
-                ),
-              );
             } else {
               arrestPlayer();
               return;
@@ -1407,54 +984,20 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
         }
       }
 
-      items.removeWhere((item) => item.y > 1.1);
+      items.removeWhere((item) => item.y > 1.15);
 
-      for (var popup in popups) {
-        popup.y -= 0.006;
-        popup.life--;
+      for (var p in popups) {
+        p.y -= 0.007;
+        p.life--;
       }
-      popups.removeWhere((popup) => popup.life <= 0);
+      popups.removeWhere((p) => p.life <= 0);
 
-      if (!isJumping && tickCounter % 4 == 0) {
-        dustParticles.add(
-          _DustParticle(
-            laneAnim: playerLaneAnim,
-            y: playerY,
-            drift: random.nextDouble() * 10 - 5,
-          ),
-        );
-        neonParticles.add(
-          _NeonSparkle(
-            x: playerLaneAnim,
-            y: playerY + 0.05,
-            color: random.nextBool() ? Colors.cyanAccent : Colors.amberAccent,
-          ),
-        );
-      }
-
-      for (var dust in dustParticles) {
-        dust.life--;
-      }
-      dustParticles.removeWhere((dust) => dust.life <= 0);
-
-      for (var neon in neonParticles) {
-        neon.life--;
-      }
-      neonParticles.removeWhere((neon) => neon.life <= 0);
-
-      if (tickCounter % 90 == 0) {
-        speed += 0.0008;
-        if (speed > 0.024) speed = 0.024;
-      }
-
-      if (tickCounter % 15 == 0) {
-        score += 1 * scoreMultiplier;
-      }
-
+      if (tickCounter % 18 == 0) score += 1 * scoreMultiplier;
       final newLevel = (coins ~/ 10) + 1;
       if (newLevel != level) {
         level = newLevel;
-        _levelUpController.forward(from: 0);
+        levelFlashTimer = 20;
+        HapticFeedback.lightImpact();
       }
 
       if (score > highestScore) highestScore = score;
@@ -1465,9 +1008,8 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
 
   void arrestPlayer() {
     isArrested = true;
-    policeLane = playerLane;
-    policeY = playerY + 0.02;
     _shakeController.forward(from: 0);
+    HapticFeedback.heavyImpact();
     triggerReviveOrGameOver();
   }
 
@@ -1481,153 +1023,69 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
         showRevivePrompt = true;
         reviveTimerSeconds = 4;
       });
-      reviveTimer?.cancel();
       reviveTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
         setState(() {
           reviveTimerSeconds--;
           if (reviveTimerSeconds <= 0) {
             timer.cancel();
             showRevivePrompt = false;
-            finalizeGameOver();
+            setState(() => isGameOver = true);
+            _gameOverController.forward(from: 0);
           }
         });
       });
     } else {
-      finalizeGameOver();
+      setState(() => isGameOver = true);
+      _gameOverController.forward(from: 0);
     }
   }
 
   void useKeyToRevive() {
-    if (keys <= 0 || !showRevivePrompt) return;
+    if (keys <= 0) return;
     reviveTimer?.cancel();
     setState(() {
       keys--;
       showRevivePrompt = false;
       isRevivingCloud = true;
     });
-
-    Future.delayed(const Duration(milliseconds: 900), () {
+    Future.delayed(const Duration(milliseconds: 800), () {
       if (mounted) {
         setState(() {
           isRevivingCloud = false;
           isGameOver = false;
           isArrested = false;
           policeY = 1.2;
-          items.removeWhere(
-            (item) => item.y > playerY - 0.2 && item.y < playerY + 0.1,
-          );
+          shieldTimer = 180; // 3 seconds respawn protection
+          items.removeWhere((i) => (i.y - playerY).abs() < 0.25);
         });
         SoundManager.playBackgroundMusic();
-        gameTimer = Timer.periodic(const Duration(milliseconds: 16), (timer) {
-          updateGame();
-        });
+        gameTimer = Timer.periodic(const Duration(milliseconds: 16), (_) => updateGame());
       }
     });
   }
 
-  void finalizeGameOver() {
-    setState(() {
-      showRevivePrompt = false;
-      isGameOver = true;
-    });
-    if (score > highestScore) highestScore = score;
-    if (coins > highestCoins) highestCoins = coins;
-    if (level > highestLevel) highestLevel = level;
-    _gameOverController.forward(from: 0);
-  }
-
-  void pauseGame() {
-    if (isGameOver ||
-        isPaused ||
-        resumeCountdown > 0 ||
-        isIntroPhase ||
-        showRevivePrompt)
-      return;
-    setState(() {
-      isPaused = true;
-    });
-  }
-
-  void startResumeCountdown() {
-    setState(() {
-      resumeCountdown = 3;
-    });
-    countdownTimer?.cancel();
-    countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      setState(() {
-        resumeCountdown--;
-        if (resumeCountdown <= 0) {
-          isPaused = false;
-          timer.cancel();
-        }
-      });
-    });
-  }
-
-  void quitApp() {
-    SystemNavigator.pop();
-  }
-
-  void handleSwipe(double difference) {
-    if (isIntroPhase || showRevivePrompt) return;
-    const double swipeThreshold = 25;
-    if (difference.abs() < swipeThreshold) return;
-    if (difference > 0)
-      moveRight();
-    else
-      moveLeft();
-  }
-
-  void handleVerticalSwipe(double difference) {
-    if (isIntroPhase || showRevivePrompt) return;
-    const double swipeThreshold = 25;
-    if (difference < -swipeThreshold) triggerJump();
-  }
-
   void triggerJump() {
-    if (isGameOver ||
-        isJumping ||
-        isPaused ||
-        resumeCountdown > 0 ||
-        isIntroPhase ||
-        showRevivePrompt)
-      return;
+    if (isGameOver || isJumping || isPaused || isIntroPhase || showRevivePrompt) return;
     setState(() {
       isJumping = true;
       jumpTick = 0;
-      pendingPoliceJumpDelay = 6;
     });
     SoundManager.playJump();
+    HapticFeedback.selectionClick();
   }
 
   void moveLeft() {
-    if (!isGameOver &&
-        !isPaused &&
-        resumeCountdown == 0 &&
-        playerLane > 0 &&
-        !showRevivePrompt) {
-      setState(() {
-        playerLane--;
-      });
+    if (!isGameOver && !isPaused && playerLane > 0 && !showRevivePrompt) {
+      setState(() => playerLane--);
+      HapticFeedback.selectionClick();
     }
   }
 
   void moveRight() {
-    if (!isGameOver &&
-        !isPaused &&
-        resumeCountdown == 0 &&
-        playerLane < laneCount - 1 &&
-        !showRevivePrompt) {
-      setState(() {
-        playerLane++;
-      });
+    if (!isGameOver && !isPaused && playerLane < laneCount - 1 && !showRevivePrompt) {
+      setState(() => playerLane++);
+      HapticFeedback.selectionClick();
     }
-  }
-
-  void restartGame() {
-    setState(() {
-      setupGame();
-    });
   }
 
   @override
@@ -1637,1732 +1095,640 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     reviveTimer?.cancel();
     _shakeController.dispose();
     _scoreBumpController.dispose();
+    _pulseAuraController.dispose();
+    _hudEntranceController.dispose();
     _gameOverController.dispose();
-    _gameOverPulseController.dispose();
-    _levelUpController.dispose();
-    _shieldPulseController.dispose();
-    _tapPulseController.dispose();
-    _introIdleBobController.dispose();
     super.dispose();
   }
 
-  Widget safeImage(
-    String path, {
-    required double width,
-    required double height,
-    BoxFit fit = BoxFit.contain,
-  }) {
-    return Image.asset(
-      path,
-      width: width,
-      height: height,
-      fit: fit,
-      errorBuilder: (context, error, stackTrace) {
-        return Container(
-          width: width,
-          height: height,
-          decoration: BoxDecoration(
-            color: Colors.redAccent,
-            borderRadius: BorderRadius.circular(4),
-            border: Border.all(color: Colors.black, width: 2),
+  // Dynamic Theme Colors based on progression
+  List<Color> get themeBackground {
+    if (score < 150) {
+      return [const Color(0xFF2E7D32), const Color(0xFF1B5E20)]; // Sunny Highway
+    } else if (score < 300) {
+      return [const Color(0xFFE65100), const Color(0xFF3E2723)]; // Sunset Neon
+    } else {
+      return [const Color(0xFF0D47A1), const Color(0xFF1A237E)]; // Cyber Midnight
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final size = MediaQuery.of(context).size;
+    final roadWidth = size.width * 0.84;
+    final laneWidth = roadWidth / laneCount;
+    final roadLeft = (size.width - roadWidth) / 2;
+    final shakeDx = sin(_shakeController.value * pi * 8) * (1 - _shakeController.value) * 14;
+
+    return Scaffold(
+      body: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () {
+          if (isIntroPhase) startChase();
+        },
+        onHorizontalDragEnd: (d) {
+          if (d.velocity.pixelsPerSecond.dx > 100) moveRight();
+          if (d.velocity.pixelsPerSecond.dx < -100) moveLeft();
+        },
+        onVerticalDragEnd: (d) {
+          if (d.velocity.pixelsPerSecond.dy < -100) triggerJump();
+        },
+        child: Transform.translate(
+          offset: Offset(shakeDx, 0),
+          child: Stack(
+            children: [
+              // Dynamic Background
+              Positioned.fill(
+                child: AnimatedContainer(
+                  duration: const Duration(seconds: 2),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: themeBackground),
+                  ),
+                ),
+              ),
+
+              // Parallax scenery (buildings/trees on either side of the road)
+              ...scenery.map((s) {
+                final y = (s.baseY + sceneryOffset) % 1.2 - 0.15;
+                return Positioned(
+                  left: s.x * size.width - (s.isBuilding ? 22 : 14) * s.scale,
+                  top: y * size.height,
+                  child: Opacity(
+                    opacity: 0.55,
+                    child: s.isBuilding
+                        ? Container(
+                            width: 44 * s.scale,
+                            height: 90 * s.scale,
+                            decoration: BoxDecoration(
+                              color: s.color,
+                              borderRadius: BorderRadius.circular(4),
+                              boxShadow: const [BoxShadow(color: Colors.black38, blurRadius: 6)],
+                            ),
+                          )
+                        : Icon(Icons.park_rounded, size: 42 * s.scale, color: s.color),
+                  ),
+                );
+              }),
+
+              // Road Surface
+              Positioned(
+                left: roadLeft,
+                top: 0,
+                width: roadWidth,
+                height: size.height,
+                child: Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.centerLeft,
+                      end: Alignment.centerRight,
+                      colors: [Colors.grey[900]!, Colors.grey[850]!, Colors.grey[900]!],
+                    ),
+                    boxShadow: const [
+                      BoxShadow(color: Colors.black54, blurRadius: 18, spreadRadius: -2),
+                    ],
+                  ),
+                ),
+              ),
+
+              // Road Dividers
+              ...List.generate(laneCount - 1, (i) {
+                return Positioned(
+                  left: roadLeft + (i + 1) * laneWidth - 2,
+                  top: 0,
+                  width: 4,
+                  height: size.height,
+                  child: CustomPaint(painter: DashedLinePainter(offset: roadOffset)),
+                );
+              }),
+
+              // Landing dust puffs
+              ...dustPuffs.map((d) {
+                final t = 1 - (d.life / _DustPuff.maxLife);
+                return Positioned(
+                  left: roadLeft + d.x * laneWidth + laneWidth / 2 - (10 + t * 16),
+                  top: d.y * size.height - (10 + t * 16) / 2,
+                  child: Opacity(
+                    opacity: (1 - t).clamp(0.0, 1.0) * 0.5,
+                    child: Container(
+                      width: 20 + t * 32,
+                      height: 20 + t * 32,
+                      decoration: const BoxDecoration(shape: BoxShape.circle, color: Colors.white),
+                    ),
+                  ),
+                );
+              }),
+
+              // Trail Particles
+              ...trailParticles.map((t) => Positioned(
+                    left: roadLeft + t.lane * laneWidth + laneWidth / 2 - 8,
+                    top: t.y * size.height,
+                    child: Opacity(
+                      opacity: (t.life / _TrailParticle.maxLife).clamp(0.0, 1.0),
+                      child: Container(
+                        width: 16,
+                        height: 16,
+                        decoration: BoxDecoration(shape: BoxShape.circle, color: t.color, boxShadow: [BoxShadow(color: t.color, blurRadius: 10)]),
+                      ),
+                    ),
+                  )),
+
+              // Shockwaves
+              ...shockwaves.map((s) => Positioned(
+                    left: roadLeft + s.x * laneWidth + laneWidth / 2 - (1 - (s.life / BlastShockwave.maxLife)) * 60,
+                    top: s.y * size.height - (1 - (s.life / BlastShockwave.maxLife)) * 60,
+                    child: Opacity(
+                      opacity: (s.life / BlastShockwave.maxLife).clamp(0.0, 1.0),
+                      child: Container(
+                        width: (1 - (s.life / BlastShockwave.maxLife)) * 120,
+                        height: (1 - (s.life / BlastShockwave.maxLife)) * 120,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.amberAccent, width: 4),
+                          boxShadow: const [BoxShadow(color: Colors.amberAccent, blurRadius: 16)],
+                        ),
+                      ),
+                    ),
+                  )),
+
+              // Debris Shards
+              ...debris.map((d) => Positioned(
+                    left: roadLeft + d.x * laneWidth + laneWidth / 2,
+                    top: d.y * size.height,
+                    child: Opacity(
+                      opacity: (d.life / DebrisParticle.maxLife).clamp(0.0, 1.0),
+                      child: Transform.rotate(
+                        angle: d.life * 0.4,
+                        child: Container(width: 8, height: 8, decoration: BoxDecoration(color: d.color, borderRadius: BorderRadius.circular(2), boxShadow: [BoxShadow(color: d.color, blurRadius: 6)])),
+                      ),
+                    ),
+                  )),
+
+              // Items & Obstacles
+              ...items.map((item) => Positioned(
+                    left: roadLeft + item.lane * laneWidth + laneWidth / 2 - 40,
+                    top: item.y * size.height,
+                    child: Transform.scale(
+                      scale: 0.4 + 0.6 * Curves.easeOutBack.transform(item.spawnT),
+                      child: _buildItemVisual(item),
+                    ),
+                  )),
+
+              // Police Officer with subtle siren glow
+              Positioned(
+                left: roadLeft + policeLaneAnim * laneWidth + laneWidth / 2 - 28,
+                top: policeY * size.height,
+                child: AnimatedBuilder(
+                  animation: _pulseAuraController,
+                  builder: (context, child) => Container(
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: (_pulseAuraController.value > 0.5 ? Colors.redAccent : Colors.blueAccent).withValues(alpha: 0.55),
+                          blurRadius: 18,
+                          spreadRadius: 2,
+                        ),
+                      ],
+                    ),
+                    child: child,
+                  ),
+                  child: Image.asset('assets/game/police.png', width: 56, height: 56, errorBuilder: (_, __, ___) => const Icon(Icons.local_police, color: Colors.blue, size: 50)),
+                ),
+              ),
+
+              // Player Character with Kinetic Lean, Squash-Stretch & Shield/Turbo Auras
+              Positioned(
+                left: roadLeft + playerLaneAnim * laneWidth + laneWidth / 2 - 40,
+                top: playerY * size.height - (isJumping ? sin((jumpTick / jumpDuration) * pi) * jumpHeight : 0),
+                child: Transform.rotate(
+                  angle: (playerLane - playerLaneAnim) * -0.3,
+                  child: Transform.scale(
+                    scaleX: isJumping ? 1 - sin((jumpTick / jumpDuration) * pi) * 0.12 : 1.0,
+                    scaleY: isJumping ? 1 + sin((jumpTick / jumpDuration) * pi) * 0.12 : 1.0,
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        if (shieldTimer > 0)
+                          AnimatedBuilder(
+                            animation: _pulseAuraController,
+                            builder: (_, __) => Container(
+                              width: 95 + _pulseAuraController.value * 12,
+                              height: 95 + _pulseAuraController.value * 12,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                border: Border.all(color: Colors.purpleAccent, width: 3.5),
+                                boxShadow: [BoxShadow(color: Colors.purpleAccent.withValues(alpha: 0.6), blurRadius: 18)],
+                              ),
+                            ),
+                          ),
+                        if (turboTimer > 0)
+                          Container(
+                            width: 100,
+                            height: 100,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              border: Border.all(color: Colors.cyanAccent, width: 3),
+                              boxShadow: [BoxShadow(color: Colors.cyanAccent.withValues(alpha: 0.7), blurRadius: 22)],
+                            ),
+                          ),
+                        Image.asset('assets/game/character.gif', width: 80, height: 80, errorBuilder: (_, __, ___) => const Icon(Icons.person, size: 70, color: Colors.amber)),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+
+              // Popups
+              ...popups.map((p) => Positioned(
+                    left: roadLeft + p.x * laneWidth + laneWidth / 2 - 30,
+                    top: p.y * size.height,
+                    child: Transform.scale(
+                      scale: p.scale,
+                      child: Text(
+                        p.text,
+                        style: TextStyle(color: p.color, fontSize: 18, fontWeight: FontWeight.w900, shadows: const [Shadow(color: Colors.black, blurRadius: 6)]),
+                      ),
+                    ),
+                  )),
+
+              // Level-up screen flash
+              if (levelFlashTimer > 0)
+                Positioned.fill(
+                  child: IgnorePointer(
+                    child: Opacity(
+                      opacity: (levelFlashTimer / 20).clamp(0.0, 1.0) * 0.25,
+                      child: Container(color: Colors.amberAccent),
+                    ),
+                  ),
+                ),
+
+              // Vignette overlay for cinematic depth
+              const Positioned.fill(
+                child: IgnorePointer(
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: RadialGradient(
+                        center: Alignment.center,
+                        radius: 1.15,
+                        colors: [Colors.transparent, Color(0x66000000)],
+                        stops: [0.6, 1.0],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+
+              // Dynamic Banner
+              if (activeBanner != null)
+                Positioned(
+                  top: 110,
+                  left: 0,
+                  right: 0,
+                  child: Center(
+                    child: TweenAnimationBuilder<double>(
+                      key: ValueKey(activeBanner),
+                      tween: Tween(begin: 0.5, end: 1.0),
+                      duration: const Duration(milliseconds: 260),
+                      curve: Curves.easeOutBack,
+                      builder: (context, v, child) => Transform.scale(scale: v, child: child),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: Colors.amberAccent,
+                          borderRadius: BorderRadius.circular(20),
+                          boxShadow: const [BoxShadow(color: Colors.black45, blurRadius: 12)],
+                        ),
+                        child: Text(
+                          activeBanner!,
+                          style: const TextStyle(color: Colors.black, fontSize: 15, fontWeight: FontWeight.w900, letterSpacing: 1.2),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+
+              // HUD & Power-up Duration Indicators
+              if (!isIntroPhase)
+                Positioned(
+                  top: 40,
+                  left: 14,
+                  right: 14,
+                  child: FadeTransition(
+                    opacity: _hudEntranceController,
+                    child: SlideTransition(
+                      position: _hudEntranceController.drive(Tween(begin: const Offset(0, -0.4), end: Offset.zero).chain(CurveTween(curve: Curves.easeOutCubic))),
+                      child: Column(
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              _hudCard('SCORE', '$score', scoreMultiplier > 1 ? Colors.amberAccent : Colors.white, scaleWith: _scoreBumpAnimation),
+                              _hudCard('LVL', '$level', Colors.amber),
+                              _hudCard('COINS', '$coins', Colors.amberAccent),
+                              _hudCard('KEYS', '$keys', Colors.cyanAccent),
+                              GestureDetector(
+                                onTap: togglePause,
+                                child: Container(
+                                  padding: const EdgeInsets.all(10),
+                                  decoration: BoxDecoration(
+                                    color: Colors.black54,
+                                    shape: BoxShape.circle,
+                                    border: Border.all(color: Colors.white24),
+                                  ),
+                                  child: const Icon(Icons.pause_rounded, color: Colors.white, size: 18),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          // Active Power-up Gauge Chips
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              if (shieldTimer > 0) _powerupChip('SHIELD', '${(shieldTimer / 60).toStringAsFixed(1)}s', Colors.purpleAccent, shieldTimer / 300),
+                              if (turboTimer > 0) _powerupChip('NITRO', '${(turboTimer / 60).toStringAsFixed(1)}s', Colors.cyanAccent, turboTimer / 210),
+                              if (magnetTimer > 0) _powerupChip('MAGNET', '${(magnetTimer / 60).toStringAsFixed(1)}s', Colors.tealAccent, magnetTimer / 360),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+
+              // Tap To Escape Screen
+              if (isIntroPhase)
+                Positioned.fill(
+                  child: Container(
+                    color: Colors.black54,
+                    child: Center(
+                      child: TweenAnimationBuilder<double>(
+                        tween: Tween(begin: 0.9, end: 1.05),
+                        duration: const Duration(milliseconds: 800),
+                        curve: Curves.easeInOut,
+                        builder: (context, v, child) => Transform.scale(scale: v, child: child),
+                        child: const Text(
+                          'TAP TO ESCAPE!',
+                          style: TextStyle(color: Colors.amberAccent, fontSize: 32, fontWeight: FontWeight.w900, letterSpacing: 3, shadows: [Shadow(color: Colors.black87, blurRadius: 16)]),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+
+              // Pause Overlay
+              if (isPaused)
+                Positioned.fill(
+                  child: BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
+                    child: Container(
+                      color: Colors.black54,
+                      child: Center(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.pause_circle_filled_rounded, color: Colors.amberAccent, size: 64),
+                            const SizedBox(height: 12),
+                            const Text('PAUSED', style: TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.w900, letterSpacing: 2)),
+                            const SizedBox(height: 24),
+                            ElevatedButton.icon(
+                              onPressed: togglePause,
+                              icon: const Icon(Icons.play_arrow_rounded),
+                              label: const Text('RESUME', style: TextStyle(fontWeight: FontWeight.w900)),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.amber,
+                                foregroundColor: Colors.black,
+                                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+
+              // Revive Prompt
+              if (showRevivePrompt)
+                Positioned.fill(
+                  child: BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
+                    child: Container(
+                      color: Colors.black87,
+                      child: Center(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.vpn_key_rounded, color: Colors.cyanAccent, size: 54),
+                            const SizedBox(height: 10),
+                            const Text('CAUGHT!', style: TextStyle(color: Colors.redAccent, fontSize: 26, fontWeight: FontWeight.w900, letterSpacing: 2)),
+                            const SizedBox(height: 8),
+                            Text('Use a key to revive? ($reviveTimerSeconds s)', style: const TextStyle(color: Colors.white70, fontSize: 14)),
+                            const SizedBox(height: 20),
+                            ElevatedButton.icon(
+                              onPressed: useKeyToRevive,
+                              icon: const Icon(Icons.flash_on_rounded),
+                              label: const Text('REVIVE NOW', style: TextStyle(fontWeight: FontWeight.w900)),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.cyanAccent,
+                                foregroundColor: Colors.black,
+                                padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+
+              // Revive Cloud Effect
+              if (isRevivingCloud)
+                Positioned.fill(
+                  child: IgnorePointer(
+                    child: TweenAnimationBuilder<double>(
+                      tween: Tween(begin: 0.0, end: 1.0),
+                      duration: const Duration(milliseconds: 800),
+                      builder: (context, v, child) => Opacity(
+                        opacity: (1 - v).clamp(0.0, 1.0),
+                        child: Container(color: Colors.cyanAccent.withValues(alpha: 0.5 * (1 - v))),
+                      ),
+                    ),
+                  ),
+                ),
+
+              // Game Over — polished staggered reveal
+              if (isGameOver)
+                Positioned.fill(
+                  child: BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 4, sigmaY: 4),
+                    child: Container(
+                      color: Colors.black87,
+                      child: Center(
+                        child: FadeTransition(
+                          opacity: _gameOverController,
+                          child: ScaleTransition(
+                            scale: CurvedAnimation(parent: _gameOverController, curve: Curves.easeOutBack),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Text('GAME OVER', style: TextStyle(color: Colors.redAccent, fontSize: 36, fontWeight: FontWeight.w900, letterSpacing: 2, shadows: [Shadow(color: Colors.black87, blurRadius: 14)])),
+                                const SizedBox(height: 18),
+                                Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    _statChip(Icons.stars_rounded, '$score', 'SCORE', Colors.amberAccent),
+                                    const SizedBox(width: 12),
+                                    _statChip(Icons.monetization_on_rounded, '$coins', 'COINS', Colors.amber),
+                                    const SizedBox(width: 12),
+                                    _statChip(Icons.emoji_events_rounded, '$highestScore', 'BEST', Colors.orangeAccent),
+                                  ],
+                                ),
+                                const SizedBox(height: 28),
+                                ElevatedButton.icon(
+                                  onPressed: setupGame,
+                                  icon: const Icon(Icons.refresh_rounded),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.amber,
+                                    padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 15),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(26)),
+                                    elevation: 10,
+                                  ),
+                                  label: const Text('PLAY AGAIN', style: TextStyle(color: Colors.black, fontWeight: FontWeight.w900, fontSize: 18)),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+            ],
           ),
-          child: const Center(
-            child: Icon(Icons.broken_image, color: Colors.white, size: 20),
-          ),
-        );
-      },
+        ),
+      ),
     );
   }
 
-  Widget _hudCard({required Widget child, double? width}) {
+  Widget _statChip(IconData icon, String value, String label, Color color) {
     return Container(
-      width: width,
-      padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.48),
+        color: Colors.white.withValues(alpha: 0.06),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: Colors.white.withValues(alpha: 0.16),
-          width: 1,
-        ),
-        boxShadow: const [
-          BoxShadow(
-            color: Colors.black38,
-            blurRadius: 12,
-            offset: Offset(0, 5),
-          ),
+        border: Border.all(color: color.withValues(alpha: 0.5)),
+      ),
+      child: Column(
+        children: [
+          Icon(icon, color: color, size: 20),
+          const SizedBox(height: 4),
+          Text(value, style: TextStyle(color: color, fontWeight: FontWeight.w900, fontSize: 15)),
+          Text(label, style: const TextStyle(color: Colors.white54, fontSize: 9, fontWeight: FontWeight.bold, letterSpacing: 1)),
         ],
       ),
-      child: child,
     );
   }
 
-  Widget _menuButton({
-    required IconData icon,
-    required String label,
-    required Color color,
-    required VoidCallback onTap,
-  }) {
-    return SizedBox(
-      width: double.infinity,
-      height: 52,
-      child: ElevatedButton.icon(
-        onPressed: onTap,
-        icon: Icon(icon, size: 23),
-        label: Text(
-          label,
-          style: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w900,
-            letterSpacing: 1,
+  Widget _hudCard(String label, String value, Color color, {Animation<double>? scaleWith}) {
+    final card = Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: 0.45),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.white24),
+        boxShadow: const [BoxShadow(color: Colors.black38, blurRadius: 8)],
+      ),
+      child: Column(
+        children: [
+          Text(label, style: const TextStyle(color: Colors.white60, fontSize: 9, fontWeight: FontWeight.bold)),
+          Text(value, style: TextStyle(color: color, fontSize: 16, fontWeight: FontWeight.w900)),
+        ],
+      ),
+    );
+    if (scaleWith == null) return card;
+    return AnimatedBuilder(
+      animation: scaleWith,
+      builder: (context, child) => Transform.scale(scale: scaleWith.value, child: child),
+      child: card,
+    );
+  }
+
+  Widget _powerupChip(String name, String time, Color color, double progress) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.25),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color, width: 1.5),
+        boxShadow: [BoxShadow(color: color.withValues(alpha: 0.4), blurRadius: 6)],
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(name, style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 10)),
+              const SizedBox(width: 4),
+              Text(time, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 10)),
+            ],
           ),
-        ),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: color,
-          foregroundColor: Colors.black,
-          elevation: 8,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(17),
+          const SizedBox(height: 2),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: SizedBox(
+              width: 46,
+              height: 3,
+              child: LinearProgressIndicator(
+                value: progress.clamp(0.0, 1.0),
+                backgroundColor: Colors.black38,
+                valueColor: AlwaysStoppedAnimation<Color>(color),
+              ),
+            ),
           ),
-        ),
+        ],
       ),
     );
   }
 
   Widget _buildItemVisual(FallingItem item) {
     switch (item.type) {
-      case ItemType.car:
-        return Stack(
-          alignment: Alignment.topCenter,
-          clipBehavior: Clip.none,
-          children: [
-            if (speed > 0.010)
-              Positioned(
-                top: -34 * ((speed - 0.006) / 0.018).clamp(0.0, 1.0) - 6,
-                child: Opacity(
-                  opacity: (0.5 * ((speed - 0.006) / 0.018)).clamp(0.0, 0.5),
-                  child: Container(
-                    width: 30,
-                    height: 34 * ((speed - 0.006) / 0.018).clamp(0.2, 1.0),
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [
-                          Colors.white.withValues(alpha: 0),
-                          Colors.white.withValues(alpha: 0.35),
-                        ],
-                      ),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                  ),
-                ),
-              ),
-            Padding(
-              padding: const EdgeInsets.only(top: 10),
-              child: Container(
-                width: 46,
-                height: 13,
-                decoration: BoxDecoration(
-                  color: Colors.black.withValues(alpha: 0.30),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-              ),
-            ),
-            Transform.translate(
-              offset: const Offset(0, -8),
-              child: buildItemWidget(item),
-            ),
-          ],
-        );
-      case ItemType.barricade:
-      case ItemType.bush:
-        final sway = sin((tickCounter + item.hashCode) * 0.06) * 2.5;
-        return Stack(
-          alignment: Alignment.topCenter,
-          clipBehavior: Clip.none,
-          children: [
-            Padding(
-              padding: const EdgeInsets.only(top: 44),
-              child: Container(
-                width: 50,
-                height: 12,
-                decoration: BoxDecoration(
-                  color: Colors.black.withValues(alpha: 0.26),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-              ),
-            ),
-            Transform.translate(
-              offset: Offset(sway, 0),
-              child: buildItemWidget(item),
-            ),
-          ],
-        );
       case ItemType.coin:
+        return Image.asset('assets/game/coin.png', width: 45, height: 45, errorBuilder: (_, __, ___) => const Icon(Icons.monetization_on, color: Colors.amber, size: 40));
       case ItemType.keyItem:
+        return const Icon(Icons.vpn_key_rounded, color: Colors.cyanAccent, size: 38);
+      case ItemType.shield:
+        return const Icon(Icons.shield_rounded, color: Colors.purpleAccent, size: 42);
+      case ItemType.turbo:
+        return const Icon(Icons.bolt_rounded, color: Colors.cyanAccent, size: 44);
       case ItemType.magnet:
-        return buildItemWidget(item);
-    }
-  }
-
-  Widget buildItemWidget(FallingItem item) {
-    switch (item.type) {
-      case ItemType.coin:
-        final wobble = sin((tickCounter + item.hashCode) * 0.15) * 4;
-        final glowPulse = (sin((tickCounter + item.hashCode) * 0.08) + 1) / 2;
-        return Transform.translate(
-          offset: Offset(0, wobble),
-          child: Stack(
-            alignment: Alignment.center,
-            children: [
-              Container(
-                width: 54,
-                height: 54,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: RadialGradient(
-                    colors: [
-                      Colors.amberAccent.withValues(
-                        alpha: 0.22 + glowPulse * 0.18,
-                      ),
-                      Colors.transparent,
-                    ],
-                  ),
-                ),
-              ),
-              safeImage('assets/game/coin.png', width: 45, height: 45),
-            ],
-          ),
-        );
-      case ItemType.keyItem:
-        final wobble = sin((tickCounter + item.hashCode) * 0.15) * 4;
-        final glowPulse = (sin((tickCounter + item.hashCode) * 0.1) + 1) / 2;
-        return Transform.translate(
-          offset: Offset(0, wobble),
-          child: Stack(
-            alignment: Alignment.center,
-            children: [
-              Container(
-                width: 54,
-                height: 54,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: RadialGradient(
-                    colors: [
-                      Colors.cyanAccent.withValues(
-                        alpha: 0.3 + glowPulse * 0.3,
-                      ),
-                      Colors.transparent,
-                    ],
-                  ),
-                ),
-              ),
-              const Icon(
-                Icons.vpn_key_rounded,
-                color: Colors.cyanAccent,
-                size: 36,
-                shadows: [Shadow(color: Colors.black54, blurRadius: 6)],
-              ),
-            ],
-          ),
-        );
-      case ItemType.magnet:
-        final wobble = sin((tickCounter + item.hashCode) * 0.15) * 4;
-        final glowPulse = (sin((tickCounter + item.hashCode) * 0.12) + 1) / 2;
-        return Transform.translate(
-          offset: Offset(0, wobble),
-          child: Stack(
-            alignment: Alignment.center,
-            children: [
-              Container(
-                width: 54,
-                height: 54,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: RadialGradient(
-                    colors: [
-                      Colors.purpleAccent.withValues(
-                        alpha: 0.4 + glowPulse * 0.4,
-                      ),
-                      Colors.transparent,
-                    ],
-                  ),
-                ),
-              ),
-              const Icon(
-                Icons.electric_bolt_rounded,
-                color: Colors.purpleAccent,
-                size: 38,
-                shadows: [Shadow(color: Colors.black54, blurRadius: 6)],
-              ),
-            ],
-          ),
-        );
+        return const Icon(Icons.electric_bolt_rounded, color: Colors.tealAccent, size: 40);
       case ItemType.car:
-        return safeImage(
-          item.carImage ?? 'assets/game/car1.png',
-          width: 80,
-          height: 120,
-        );
+        return Image.asset(item.carImage ?? 'assets/game/car1.png', width: 80, height: 120, errorBuilder: (_, __, ___) => Container(width: 70, height: 100, color: Colors.red));
       case ItemType.barricade:
         return Container(
           width: 60,
-          height: 40,
-          decoration: BoxDecoration(
-            color: Colors.orange,
-            borderRadius: BorderRadius.circular(4),
-            border: Border.all(color: Colors.black, width: 2),
-          ),
-          child: const Center(
-            child: Icon(Icons.block, color: Colors.white, size: 26),
-          ),
+          height: 38,
+          decoration: BoxDecoration(color: Colors.orange, borderRadius: BorderRadius.circular(4), border: Border.all(color: Colors.black, width: 2)),
+          child: const Center(child: Icon(Icons.block, color: Colors.white, size: 24)),
         );
       case ItemType.bush:
-        return safeImage('assets/game/bushes.png', width: 55, height: 55);
+        return Image.asset('assets/game/bushes.png', width: 55, height: 55, errorBuilder: (_, __, ___) => const Icon(Icons.park, color: Colors.green, size: 45));
     }
-  }
-
-  double _jumpArc(int tick) {
-    double progress = tick / jumpDuration;
-    return sin(pi * progress) * jumpHeight;
-  }
-
-  Offset _squashStretch(int tick, bool jumping) {
-    if (!jumping) return const Offset(1.0, 1.0);
-    final progress = tick / jumpDuration;
-    double scaleY = 1.0;
-    if (progress < 0.15) {
-      scaleY = 1.0 - 0.18 * sin((progress / 0.15) * pi);
-    } else if (progress > 0.85) {
-      scaleY = 1.0 - 0.18 * sin(((progress - 0.85) / 0.15) * pi);
-    } else {
-      scaleY = 1.06;
-    }
-    return Offset(2.0 - scaleY, scaleY);
-  }
-
-  Widget _resultStat(
-    IconData icon,
-    String label,
-    String value,
-    Color valueColor,
-  ) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.055),
-        borderRadius: BorderRadius.circular(15),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
-      ),
-      child: Column(
-        children: [
-          Icon(icon, color: valueColor, size: 20),
-          const SizedBox(height: 3),
-          Text(
-            value,
-            style: TextStyle(
-              color: valueColor,
-              fontSize: 18,
-              fontWeight: FontWeight.w900,
-            ),
-          ),
-          const SizedBox(height: 1),
-          Text(
-            label,
-            style: const TextStyle(
-              color: Colors.white54,
-              fontSize: 9,
-              fontWeight: FontWeight.w800,
-              letterSpacing: 0.8,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final size = MediaQuery.of(context).size;
-    final roadWidth = size.width * 0.82;
-    final laneWidth = roadWidth / laneCount;
-    final roadLeft = (size.width - roadWidth) / 2;
-
-    final double playerJumpOffset = isJumping ? _jumpArc(jumpTick) : 0;
-    final double policeJumpOffset = policeIsJumping
-        ? _jumpArc(policeJumpTick)
-        : 0;
-    final Offset playerSquash = _squashStretch(jumpTick, isJumping);
-    final double shakeT = _shakeController.value;
-    final double shakeDx = sin(shakeT * pi * 10) * (1 - shakeT) * 14;
-    final double flashOpacity = shakeT > 0 ? (1 - shakeT) * 0.28 : 0.0;
-
-    return Scaffold(
-      backgroundColor: const Color(0xFF2E7D32),
-      body: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: () {
-          if (isIntroPhase) {
-            startChase();
-          }
-        },
-        onHorizontalDragStart: (details) {
-          dragStartX = details.localPosition.dx;
-        },
-        onHorizontalDragEnd: (details) {
-          final difference = details.localPosition.dx - dragStartX;
-          handleSwipe(difference);
-        },
-        onVerticalDragStart: (details) {
-          dragStartY = details.localPosition.dy;
-        },
-        onVerticalDragEnd: (details) {
-          final difference = details.localPosition.dy - dragStartY;
-          handleVerticalSwipe(difference);
-        },
-        child: Transform.translate(
-          offset: Offset(shakeDx, 0),
-          child: Stack(
-            children: [
-              Positioned.fill(
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [Colors.green[800]!, Colors.green[600]!],
-                    ),
-                  ),
-                ),
-              ),
-
-              Positioned(
-                left: 0,
-                top: 0,
-                width: roadLeft,
-                height: size.height,
-                child: CustomPaint(
-                  painter: _SceneryPainter(offset: sceneryOffset, isLeft: true),
-                ),
-              ),
-              Positioned(
-                right: 0,
-                top: 0,
-                width: roadLeft,
-                height: size.height,
-                child: CustomPaint(
-                  painter: _SceneryPainter(
-                    offset: sceneryOffset,
-                    isLeft: false,
-                  ),
-                ),
-              ),
-
-              Positioned(
-                left: roadLeft,
-                top: 0,
-                width: roadWidth,
-                height: size.height,
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.centerLeft,
-                      end: Alignment.centerRight,
-                      colors: [
-                        Colors.grey[900]!,
-                        Colors.grey[800]!,
-                        Colors.grey[850]!,
-                        Colors.grey[900]!,
-                      ],
-                      stops: const [0.0, 0.05, 0.95, 1.0],
-                    ),
-                  ),
-                ),
-              ),
-
-              Positioned(
-                left: roadLeft,
-                top: 0,
-                width: 6,
-                height: size.height,
-                child: Container(color: Colors.amber[700]),
-              ),
-              Positioned(
-                left: roadLeft + roadWidth - 6,
-                top: 0,
-                width: 6,
-                height: size.height,
-                child: Container(color: Colors.amber[700]),
-              ),
-
-              ...List.generate(laneCount - 1, (index) {
-                double dividerLeft = roadLeft + (index + 1) * laneWidth;
-                return Positioned(
-                  left: dividerLeft - 2,
-                  top: 0,
-                  width: 4,
-                  height: size.height,
-                  child: CustomPaint(
-                    painter: DashedLinePainter(offset: roadOffset),
-                  ),
-                );
-              }),
-
-              ...items.map((item) {
-                return Positioned(
-                  left: roadLeft + item.lane * laneWidth + laneWidth / 2 - 40,
-                  top: item.y * size.height,
-                  child: _buildItemVisual(item),
-                );
-              }),
-
-              ...neonParticles.map((neon) {
-                final opacity =
-                    (neon.life / _NeonSparkle.maxLife).clamp(0.0, 1.0) * 0.8;
-                return Positioned(
-                  left:
-                      roadLeft +
-                      neon.x * laneWidth +
-                      laneWidth / 2 +
-                      (random.nextDouble() * 20 - 10),
-                  top: neon.y * size.height + (random.nextDouble() * 20 - 10),
-                  child: Opacity(
-                    opacity: opacity,
-                    child: Container(
-                      width: 6,
-                      height: 6,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: neon.color,
-                        boxShadow: [
-                          BoxShadow(
-                            color: neon.color,
-                            blurRadius: 6,
-                            spreadRadius: 1,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                );
-              }),
-
-              ...dustParticles.map((dust) {
-                final opacity =
-                    (dust.life / _DustParticle.maxLife).clamp(0.0, 1.0) * 0.35;
-                final progress = 1 - (dust.life / _DustParticle.maxLife);
-                return Positioned(
-                  left:
-                      roadLeft +
-                      dust.laneAnim * laneWidth +
-                      laneWidth / 2 -
-                      6 +
-                      dust.drift * progress,
-                  top: dust.y * size.height + 40 - (progress * 14),
-                  child: Opacity(
-                    opacity: opacity,
-                    child: Container(
-                      width: 10 + progress * 8,
-                      height: 10 + progress * 8,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: Colors.white.withValues(alpha: 0.5),
-                      ),
-                    ),
-                  ),
-                );
-              }),
-
-              ...popups.map((popup) {
-                final opacity = (popup.life / FloatingPopup.maxLife).clamp(
-                  0.0,
-                  1.0,
-                );
-                return Positioned(
-                  left: roadLeft + popup.x * laneWidth + laneWidth / 2 - 20,
-                  top: popup.y * size.height,
-                  child: Opacity(
-                    opacity: opacity,
-                    child: Transform.scale(
-                      scale: popup.scale,
-                      child: Text(
-                        popup.text,
-                        style: const TextStyle(
-                          color: Colors.amberAccent,
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          shadows: [
-                            Shadow(color: Colors.black87, blurRadius: 4),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                );
-              }),
-
-              Positioned(
-                left:
-                    roadLeft + policeLaneAnim * laneWidth + laneWidth / 2 - 22,
-                top: policeY * size.height - policeJumpOffset + 48,
-                child: Opacity(
-                  opacity: (0.30 * (1 - (policeJumpOffset / jumpHeight) * 0.75))
-                      .clamp(0.06, 0.30),
-                  child: Transform.scale(
-                    scale: (1 - (policeJumpOffset / jumpHeight) * 0.4).clamp(
-                      0.5,
-                      1.0,
-                    ),
-                    child: Container(
-                      width: 40,
-                      height: 11,
-                      decoration: BoxDecoration(
-                        color: Colors.black,
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-
-              Positioned(
-                left:
-                    roadLeft + playerLaneAnim * laneWidth + laneWidth / 2 - 34,
-                top: playerY * size.height - playerJumpOffset + 70,
-                child: Opacity(
-                  opacity: (0.32 * (1 - (playerJumpOffset / jumpHeight) * 0.75))
-                      .clamp(0.06, 0.32),
-                  child: Transform.scale(
-                    scale: (1 - (playerJumpOffset / jumpHeight) * 0.4).clamp(
-                      0.5,
-                      1.0,
-                    ),
-                    child: Container(
-                      width: 60,
-                      height: 14,
-                      decoration: BoxDecoration(
-                        color: Colors.black,
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-
-              Positioned(
-                left:
-                    roadLeft + policeLaneAnim * laneWidth + laneWidth / 2 - 27,
-                top: policeY * size.height - policeJumpOffset,
-                child: safeImage(
-                  'assets/game/police.png',
-                  width: 55,
-                  height: 55,
-                ),
-              ),
-
-              Positioned(
-                left:
-                    roadLeft + policeLaneAnim * laneWidth + laneWidth / 2 - 10,
-                top: policeY * size.height - policeJumpOffset - 12,
-                child: Builder(
-                  builder: (context) {
-                    final onRed = (tickCounter ~/ 8) % 2 == 0;
-                    final sirenColor = onRed
-                        ? Colors.redAccent
-                        : Colors.blueAccent;
-                    return Container(
-                      width: 20,
-                      height: 9,
-                      decoration: BoxDecoration(
-                        color: sirenColor,
-                        borderRadius: BorderRadius.circular(3),
-                        boxShadow: [
-                          BoxShadow(
-                            color: sirenColor.withValues(alpha: 0.85),
-                            blurRadius: 10,
-                            spreadRadius: 1,
-                          ),
-                        ],
-                      ),
-                    );
-                  },
-                ),
-              ),
-
-              Positioned(
-                left:
-                    roadLeft + playerLaneAnim * laneWidth + laneWidth / 2 - 40,
-                top:
-                    playerY * size.height -
-                    playerJumpOffset -
-                    (isJumping
-                        ? 0
-                        : (isIntroPhase
-                              ? sin(_introIdleBobController.value * pi) * 6
-                              : (sin(tickCounter * 0.35) + 1) * 2.5)),
-                child: Stack(
-                  alignment: Alignment.center,
-                  clipBehavior: Clip.none,
-                  children: [
-                    Transform.rotate(
-                      angle: ((playerLane - playerLaneAnim) * -0.35).clamp(
-                        -0.25,
-                        0.25,
-                      ),
-                      child: Transform.scale(
-                        scale: isIntroPhase
-                            ? 1.0 + (_introIdleBobController.value * 0.05)
-                            : 1.0,
-                        child: Transform(
-                          alignment: Alignment.bottomCenter,
-                          transform: Matrix4.diagonal3Values(
-                            playerSquash.dx,
-                            playerSquash.dy,
-                            1.0,
-                          ),
-                          child: safeImage(
-                            'assets/game/character.gif',
-                            width: 80,
-                            height: 80,
-                          ),
-                        ),
-                      ),
-                    ),
-                    if (hasMagnetShield)
-                      AnimatedBuilder(
-                        animation: _shieldPulseController,
-                        builder: (context, _) {
-                          final p = 1.0 + (_shieldPulseController.value * 0.15);
-                          return Transform.scale(
-                            scale: p,
-                            child: Container(
-                              width: 95,
-                              height: 95,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                border: Border.all(
-                                  color: Colors.purpleAccent,
-                                  width: 3.5,
-                                ),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.purpleAccent.withValues(
-                                      alpha: 0.7,
-                                    ),
-                                    blurRadius: 18,
-                                    spreadRadius: 3,
-                                  ),
-                                ],
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                  ],
-                ),
-              ),
-
-              Positioned.fill(
-                child: IgnorePointer(
-                  child: CustomPaint(
-                    painter: _SpeedLinesPainter(
-                      intensity: (((speed - 0.006) / (0.024 - 0.006)) - 0.35)
-                          .clamp(0.0, 1.0),
-                      phase: (tickCounter % 60) / 60,
-                    ),
-                  ),
-                ),
-              ),
-
-              if (flashOpacity > 0)
-                Positioned.fill(
-                  child: IgnorePointer(
-                    child: Container(
-                      color: Colors.red.withValues(alpha: flashOpacity),
-                    ),
-                  ),
-                ),
-
-              if (activeMilestoneText != null)
-                Positioned(
-                  top: 110,
-                  left: 0,
-                  right: 0,
-                  child: Center(
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 18,
-                        vertical: 9,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.amberAccent,
-                        borderRadius: BorderRadius.circular(20),
-                        boxShadow: const [
-                          BoxShadow(color: Colors.black54, blurRadius: 12),
-                        ],
-                      ),
-                      child: Text(
-                        activeMilestoneText!,
-                        style: const TextStyle(
-                          color: Colors.black,
-                          fontWeight: FontWeight.w900,
-                          fontSize: 16.5,
-                          letterSpacing: 1,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-
-              if (isIntroPhase)
-                Positioned.fill(
-                  child: IgnorePointer(
-                    child: Container(
-                      color: Colors.black.withValues(alpha: 0.4),
-                      child: Center(
-                        child: AnimatedBuilder(
-                          animation: _tapPulseController,
-                          builder: (context, child) {
-                            return Opacity(
-                              opacity: 0.6 + 0.4 * _tapPulseController.value,
-                              child: Transform.scale(
-                                scale: 0.94 + 0.06 * _tapPulseController.value,
-                                child: Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Container(
-                                      padding: const EdgeInsets.all(16),
-                                      decoration: BoxDecoration(
-                                        shape: BoxShape.circle,
-                                        color: Colors.amber.withValues(
-                                          alpha: 0.2,
-                                        ),
-                                        border: Border.all(
-                                          color: Colors.amberAccent,
-                                          width: 2,
-                                        ),
-                                        boxShadow: [
-                                          BoxShadow(
-                                            color: Colors.amber.withValues(
-                                              alpha: 0.4,
-                                            ),
-                                            blurRadius: 20,
-                                          ),
-                                        ],
-                                      ),
-                                      child: const Icon(
-                                        Icons.touch_app_rounded,
-                                        color: Colors.amberAccent,
-                                        size: 55,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 16),
-                                    const Text(
-                                      'TAP TO ESCAPE!',
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 34,
-                                        fontWeight: FontWeight.w900,
-                                        letterSpacing: 3,
-                                        shadows: [
-                                          Shadow(
-                                            color: Colors.black87,
-                                            blurRadius: 12,
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                    const SizedBox(height: 6),
-                                    Text(
-                                      'Police chase is waiting behind you!',
-                                      style: TextStyle(
-                                        color: Colors.white.withValues(
-                                          alpha: 0.7,
-                                        ),
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w600,
-                                        letterSpacing: 1,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            );
-                          },
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-
-              if (!isIntroPhase)
-                Positioned(
-                  top: 42,
-                  left: 14,
-                  right: 14,
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                        child: _hudCard(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  const Icon(
-                                    Icons.bolt_rounded,
-                                    color: Colors.white,
-                                    size: 18,
-                                  ),
-                                  const SizedBox(width: 5),
-                                  Text(
-                                    scoreMultiplier > 1
-                                        ? 'SCORE (x$scoreMultiplier)'
-                                        : 'SCORE',
-                                    style: const TextStyle(
-                                      color: Colors.white70,
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.w800,
-                                      letterSpacing: 1.2,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 2),
-                              Transform.scale(
-                                scale: _scoreBumpAnimation.value,
-                                alignment: Alignment.centerLeft,
-                                child: Text(
-                                  '$score',
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 23,
-                                    fontWeight: FontWeight.w900,
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(height: 1),
-                              Text(
-                                'BEST  $highestScore',
-                                style: const TextStyle(
-                                  color: Colors.white60,
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      _hudCard(
-                        width: 72,
-                        child: Column(
-                          children: [
-                            const Icon(
-                              Icons.bolt_rounded,
-                              color: Colors.amberAccent,
-                              size: 20,
-                            ),
-                            Text(
-                              'LV $level',
-                              style: const TextStyle(
-                                color: Colors.amberAccent,
-                                fontSize: 15,
-                                fontWeight: FontWeight.w900,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      _hudCard(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.end,
-                              children: const [
-                                Icon(
-                                  Icons.monetization_on_rounded,
-                                  color: Colors.amber,
-                                  size: 17,
-                                ),
-                                SizedBox(width: 3),
-                                Text(
-                                  'COINS',
-                                  style: TextStyle(
-                                    color: Colors.white70,
-                                    fontSize: 9,
-                                    fontWeight: FontWeight.w800,
-                                    letterSpacing: 1.1,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            Text(
-                              '$coins',
-                              style: const TextStyle(
-                                color: Colors.amberAccent,
-                                fontSize: 18,
-                                fontWeight: FontWeight.w900,
-                              ),
-                            ),
-                            const SizedBox(height: 3),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.end,
-                              children: [
-                                const Icon(
-                                  Icons.vpn_key_rounded,
-                                  color: Colors.cyanAccent,
-                                  size: 15,
-                                ),
-                                const SizedBox(width: 3),
-                                Text(
-                                  '$keys',
-                                  style: const TextStyle(
-                                    color: Colors.cyanAccent,
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w900,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      GestureDetector(
-                        onTap: pauseGame,
-                        child: _hudCard(
-                          child: const Padding(
-                            padding: EdgeInsets.symmetric(vertical: 4),
-                            child: Icon(
-                              Icons.pause_rounded,
-                              color: Colors.white,
-                              size: 28,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-
-              if (isRevivingCloud)
-                Positioned.fill(
-                  child: Container(
-                    color: Colors.cyan.withValues(alpha: 0.7),
-                    child: Center(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(
-                            Icons.cloud_circle_rounded,
-                            color: Colors.white,
-                            size: 90,
-                          ),
-                          const SizedBox(height: 12),
-                          const Text(
-                            'REVIVING WITH KEY...',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 24,
-                              fontWeight: FontWeight.w900,
-                              letterSpacing: 2,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-
-              if (showRevivePrompt)
-                Positioned.fill(
-                  child: Container(
-                    color: Colors.black.withValues(alpha: 0.82),
-                    child: Center(
-                      child: Container(
-                        margin: const EdgeInsets.symmetric(horizontal: 24),
-                        padding: const EdgeInsets.all(24),
-                        decoration: BoxDecoration(
-                          gradient: const LinearGradient(
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                            colors: [Color(0xFF17202A), Color(0xFF0B1118)],
-                          ),
-                          borderRadius: BorderRadius.circular(28),
-                          border: Border.all(
-                            color: Colors.cyanAccent.withValues(alpha: 0.6),
-                            width: 2,
-                          ),
-                          boxShadow: const [
-                            BoxShadow(
-                              color: Colors.black54,
-                              blurRadius: 24,
-                              offset: Offset(0, 12),
-                            ),
-                          ],
-                        ),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(
-                              Icons.vpn_key_rounded,
-                              color: Colors.cyanAccent,
-                              size: 55,
-                            ),
-                            const SizedBox(height: 10),
-                            const Text(
-                              'CAUGHT BY POLICE!',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 26,
-                                fontWeight: FontWeight.w900,
-                                letterSpacing: 1.5,
-                              ),
-                            ),
-                            const SizedBox(height: 6),
-                            Text(
-                              'Use a Key to Resume instantly ($keys Keys available)',
-                              style: const TextStyle(
-                                color: Colors.white70,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                            const SizedBox(height: 24),
-                            Text(
-                              '00:0$reviveTimerSeconds',
-                              style: const TextStyle(
-                                color: Colors.amberAccent,
-                                fontSize: 44,
-                                fontWeight: FontWeight.w900,
-                              ),
-                            ),
-                            const SizedBox(height: 24),
-                            Opacity(
-                              opacity: keys > 0 ? 1.0 : 0.4,
-                              child: SizedBox(
-                                width: double.infinity,
-                                height: 52,
-                                child: ElevatedButton.icon(
-                                  onPressed: keys > 0 ? useKeyToRevive : null,
-                                  icon: const Icon(
-                                    Icons.lock_open_rounded,
-                                    size: 23,
-                                  ),
-                                  label: Text(
-                                    keys > 0
-                                        ? 'RESUME WITH KEY (-1)'
-                                        : 'NO KEYS AVAILABLE',
-                                    style: const TextStyle(
-                                      fontSize: 15,
-                                      fontWeight: FontWeight.w900,
-                                      letterSpacing: 1,
-                                    ),
-                                  ),
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.cyanAccent,
-                                    foregroundColor: Colors.black,
-                                    elevation: 8,
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(17),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 12),
-                            TextButton(
-                              onPressed: () {
-                                reviveTimer?.cancel();
-                                finalizeGameOver();
-                              },
-                              child: const Text(
-                                'GIVE UP & END GAME',
-                                style: TextStyle(
-                                  color: Colors.redAccent,
-                                  fontWeight: FontWeight.w800,
-                                  letterSpacing: 1,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-
-              if (_levelUpController.value > 0)
-                Positioned(
-                  top: 118,
-                  left: 0,
-                  right: 0,
-                  child: IgnorePointer(
-                    child: Builder(
-                      builder: (context) {
-                        final v = _levelUpController.value;
-                        double opacity, scale;
-                        if (v < 0.25) {
-                          opacity = v / 0.25;
-                          scale =
-                              0.7 +
-                              0.3 * Curves.easeOutBack.transform(v / 0.25);
-                        } else if (v < 0.7) {
-                          opacity = 1.0;
-                          scale = 1.0;
-                        } else {
-                          opacity = (1 - ((v - 0.7) / 0.3)).clamp(0.0, 1.0);
-                          scale = 1.0;
-                        }
-                        return Opacity(
-                          opacity: opacity.clamp(0.0, 1.0),
-                          child: Center(
-                            child: Transform.scale(
-                              scale: scale,
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 22,
-                                  vertical: 12,
-                                ),
-                                decoration: BoxDecoration(
-                                  gradient: const LinearGradient(
-                                    colors: [Colors.amber, Colors.deepOrange],
-                                  ),
-                                  borderRadius: BorderRadius.circular(20),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.amber.withValues(
-                                        alpha: 0.55,
-                                      ),
-                                      blurRadius: 22,
-                                      spreadRadius: 2,
-                                    ),
-                                  ],
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    const Icon(
-                                      Icons.flash_on_rounded,
-                                      color: Colors.white,
-                                      size: 22,
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Text(
-                                      'LEVEL $level',
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 20,
-                                        fontWeight: FontWeight.w900,
-                                        letterSpacing: 1.2,
-                                        shadows: [
-                                          Shadow(
-                                            color: Colors.black38,
-                                            blurRadius: 4,
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                ),
-
-              if (resumeCountdown > 0)
-                Positioned.fill(
-                  child: Container(
-                    color: Colors.black.withValues(alpha: 0.5),
-                    child: Center(
-                      child: Text(
-                        '$resumeCountdown',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 120,
-                          fontWeight: FontWeight.w900,
-                          shadows: [
-                            Shadow(color: Colors.black54, blurRadius: 10),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-
-              if (isPaused && resumeCountdown == 0)
-                Positioned.fill(
-                  child: Container(
-                    color: Colors.black.withValues(alpha: 0.8),
-                    child: Center(
-                      child: Container(
-                        margin: const EdgeInsets.symmetric(horizontal: 24),
-                        padding: const EdgeInsets.all(24),
-                        decoration: BoxDecoration(
-                          gradient: const LinearGradient(
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                            colors: [Color(0xFF17202A), Color(0xFF0B1118)],
-                          ),
-                          borderRadius: BorderRadius.circular(28),
-                          border: Border.all(color: Colors.white24, width: 1.5),
-                          boxShadow: const [
-                            BoxShadow(
-                              color: Colors.black54,
-                              blurRadius: 24,
-                              offset: Offset(0, 12),
-                            ),
-                          ],
-                        ),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Text(
-                              'PAUSED',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 30,
-                                fontWeight: FontWeight.w900,
-                                letterSpacing: 2,
-                              ),
-                            ),
-                            const SizedBox(height: 30),
-                            _menuButton(
-                              icon: Icons.play_arrow_rounded,
-                              label: 'RESUME',
-                              color: Colors.greenAccent,
-                              onTap: startResumeCountdown,
-                            ),
-                            const SizedBox(height: 12),
-                            _menuButton(
-                              icon: Icons.replay_rounded,
-                              label: 'RESTART',
-                              color: Colors.amber,
-                              onTap: restartGame,
-                            ),
-                            const SizedBox(height: 12),
-                            _menuButton(
-                              icon: Icons.exit_to_app_rounded,
-                              label: 'QUIT',
-                              color: Colors.redAccent,
-                              onTap: quitApp,
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-
-              if (isGameOver)
-                Positioned.fill(
-                  child: AnimatedBuilder(
-                    animation: _gameOverPulseController,
-                    builder: (context, child) {
-                      final t = Curves.easeInOut.transform(
-                        _gameOverPulseController.value,
-                      );
-                      final overlayOpacity =
-                          Curves.easeOut.transform(_gameOverController.value) *
-                          0.88;
-                      return Container(
-                        color: Colors.black.withValues(alpha: overlayOpacity),
-                        child: Center(
-                          child: Opacity(
-                            opacity: Curves.easeOut.transform(
-                              _gameOverController.value,
-                            ),
-                            child: Transform.scale(
-                              scale:
-                                  0.82 +
-                                  0.18 *
-                                      Curves.easeOutBack.transform(
-                                        _gameOverController.value,
-                                      ),
-                              child: Container(
-                                margin: const EdgeInsets.symmetric(
-                                  horizontal: 24,
-                                ),
-                                padding: const EdgeInsets.fromLTRB(
-                                  22,
-                                  22,
-                                  22,
-                                  20,
-                                ),
-                                decoration: BoxDecoration(
-                                  gradient: LinearGradient(
-                                    begin: Alignment.topLeft,
-                                    end: Alignment.bottomRight,
-                                    colors: [
-                                      const Color(0xFF17202A),
-                                      const Color(0xFF0B1118),
-                                      Colors.red.shade900.withValues(
-                                        alpha: 0.28,
-                                      ),
-                                    ],
-                                  ),
-                                  borderRadius: BorderRadius.circular(28),
-                                  border: Border.all(
-                                    color: Colors.redAccent.withValues(
-                                      alpha: 0.55 + (t * 0.25),
-                                    ),
-                                    width: 1.5,
-                                  ),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.redAccent.withValues(
-                                        alpha: 0.16 + (t * 0.12),
-                                      ),
-                                      blurRadius: 28 + (t * 8),
-                                      spreadRadius: 2,
-                                    ),
-                                    const BoxShadow(
-                                      color: Colors.black54,
-                                      blurRadius: 24,
-                                      offset: Offset(0, 12),
-                                    ),
-                                  ],
-                                ),
-                                child: Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Transform.scale(
-                                      scale: 0.96 + (t * 0.08),
-                                      child: Container(
-                                        width: 78,
-                                        height: 78,
-                                        decoration: BoxDecoration(
-                                          shape: BoxShape.circle,
-                                          gradient: RadialGradient(
-                                            colors: [
-                                              Colors.redAccent.withValues(
-                                                alpha: 0.95,
-                                              ),
-                                              Colors.red.shade900,
-                                            ],
-                                          ),
-                                          border: Border.all(
-                                            color: Colors.white24,
-                                            width: 2,
-                                          ),
-                                          boxShadow: [
-                                            BoxShadow(
-                                              color: Colors.redAccent
-                                                  .withValues(alpha: 0.35),
-                                              blurRadius: 20,
-                                              spreadRadius: 2,
-                                            ),
-                                          ],
-                                        ),
-                                        child: Icon(
-                                          isArrested
-                                              ? Icons.local_police_rounded
-                                              : Icons.warning_amber_rounded,
-                                          color: Colors.white,
-                                          size: 42,
-                                        ),
-                                      ),
-                                    ),
-                                    const SizedBox(height: 14),
-                                    Text(
-                                      isArrested ? 'GAME OVER' : 'RUN ENDED',
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 30,
-                                        fontWeight: FontWeight.w900,
-                                        letterSpacing: 2,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      isArrested
-                                          ? 'YOU GOT CAUGHT!'
-                                          : 'WATCH OUT NEXT TIME',
-                                      style: TextStyle(
-                                        color: Colors.redAccent.shade100,
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w800,
-                                        letterSpacing: 1.5,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 20),
-                                    Row(
-                                      children: [
-                                        Expanded(
-                                          child: _resultStat(
-                                            Icons.bolt_rounded,
-                                            'SCORE',
-                                            '$score',
-                                            Colors.white,
-                                          ),
-                                        ),
-                                        const SizedBox(width: 8),
-                                        Expanded(
-                                          child: _resultStat(
-                                            Icons.monetization_on_rounded,
-                                            'COINS',
-                                            '$coins',
-                                            Colors.amberAccent,
-                                          ),
-                                        ),
-                                        const SizedBox(width: 8),
-                                        Expanded(
-                                          child: _resultStat(
-                                            Icons.vpn_key_rounded,
-                                            'KEYS',
-                                            '$keys',
-                                            Colors.cyanAccent,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 10),
-                                    Container(
-                                      width: double.infinity,
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 14,
-                                        vertical: 10,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: Colors.white.withValues(
-                                          alpha: 0.055,
-                                        ),
-                                        borderRadius: BorderRadius.circular(14),
-                                        border: Border.all(
-                                          color: Colors.white.withValues(
-                                            alpha: 0.08,
-                                          ),
-                                        ),
-                                      ),
-                                      child: Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.spaceBetween,
-                                        children: [
-                                          const Text(
-                                            'BEST COINS',
-                                            style: TextStyle(
-                                              color: Colors.white60,
-                                              fontSize: 11,
-                                              fontWeight: FontWeight.w800,
-                                              letterSpacing: 1,
-                                            ),
-                                          ),
-                                          Text(
-                                            '$highestCoins',
-                                            style: const TextStyle(
-                                              color: Colors.amber,
-                                              fontSize: 15,
-                                              fontWeight: FontWeight.w900,
-                                            ),
-                                          ),
-                                          Container(
-                                            width: 1,
-                                            height: 18,
-                                            color: Colors.white12,
-                                          ),
-                                          const Text(
-                                            'BEST LEVEL',
-                                            style: TextStyle(
-                                              color: Colors.white60,
-                                              fontSize: 11,
-                                              fontWeight: FontWeight.w800,
-                                              letterSpacing: 1,
-                                            ),
-                                          ),
-                                          Text(
-                                            '$highestLevel',
-                                            style: const TextStyle(
-                                              color: Colors.cyanAccent,
-                                              fontSize: 15,
-                                              fontWeight: FontWeight.w900,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                    const SizedBox(height: 20),
-                                    SizedBox(
-                                      width: double.infinity,
-                                      height: 52,
-                                      child: ElevatedButton.icon(
-                                        onPressed: restartGame,
-                                        icon: const Icon(
-                                          Icons.replay_rounded,
-                                          size: 23,
-                                        ),
-                                        label: const Text(
-                                          'PLAY AGAIN',
-                                          style: TextStyle(
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.w900,
-                                            letterSpacing: 1,
-                                          ),
-                                        ),
-                                        style: ElevatedButton.styleFrom(
-                                          backgroundColor: Colors.amber,
-                                          foregroundColor: Colors.black,
-                                          elevation: 10,
-                                          shadowColor: Colors.amber.withValues(
-                                            alpha: 0.35,
-                                          ),
-                                          shape: RoundedRectangleBorder(
-                                            borderRadius: BorderRadius.circular(
-                                              17,
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-            ],
-          ),
-        ),
-      ),
-    );
   }
 }
 
-class _SceneryPainter extends CustomPainter {
-  final double offset;
-  final bool isLeft;
-  static const double patternHeight = 240.0;
-  _SceneryPainter({required this.offset, required this.isLeft});
-  @override
-  void paint(Canvas canvas, Size size) {
-    final buildingPaint = Paint()
-      ..color = Colors.blueGrey.shade900.withValues(alpha: 0.55);
-    final windowPaint = Paint()
-      ..color = Colors.amberAccent.withValues(alpha: 0.30);
-    final treeTopPaint = Paint()
-      ..color = Colors.green.shade900.withValues(alpha: 0.55);
-    final trunkPaint = Paint()
-      ..color = Colors.brown.shade800.withValues(alpha: 0.55);
-    double startY = -patternHeight + (offset % patternHeight);
-    int i = 0;
-    while (startY < size.height) {
-      final isBuilding = (i + (isLeft ? 0 : 1)).isEven;
-      if (isBuilding) {
-        final w = size.width * 0.68;
-        final h = 92.0;
-        final rect = Rect.fromLTWH(
-          isLeft ? size.width - w : 0,
-          startY + 30,
-          w,
-          h,
-        );
-        canvas.drawRRect(
-          RRect.fromRectAndRadius(rect, const Radius.circular(3)),
-          buildingPaint,
-        );
-        for (int r = 0; r < 3; r++) {
-          for (int c = 0; c < 2; c++) {
-            canvas.drawRect(
-              Rect.fromLTWH(
-                rect.left + 8 + c * (w / 2),
-                rect.top + 10 + r * 26,
-                w / 2 - 16,
-                13,
-              ),
-              windowPaint,
-            );
-          }
-        }
-      } else {
-        final cx = isLeft ? size.width * 0.72 : size.width * 0.28;
-        final cy = startY + 78;
-        canvas.drawRect(Rect.fromLTWH(cx - 3, cy + 16, 6, 20), trunkPaint);
-        canvas.drawCircle(Offset(cx, cy), 24, treeTopPaint);
-        canvas.drawCircle(Offset(cx - 10, cy + 8), 16, treeTopPaint);
-      }
-      startY += patternHeight;
-      i++;
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant _SceneryPainter oldDelegate) {
-    return oldDelegate.offset != offset;
-  }
-}
-
-class _SpeedLinesPainter extends CustomPainter {
-  final double intensity;
-  final double phase;
-  _SpeedLinesPainter({required this.intensity, required this.phase});
-  @override
-  void paint(Canvas canvas, Size size) {
-    if (intensity <= 0) return;
-    final paint = Paint()
-      ..color = Colors.white.withValues(alpha: 0.16 * intensity)
-      ..strokeWidth = 2;
-    final rnd = Random(3);
-    for (int i = 0; i < 10; i++) {
-      final fromLeft = i.isEven;
-      final baseX = fromLeft
-          ? rnd.nextDouble() * size.width * 0.22
-          : size.width - rnd.nextDouble() * size.width * 0.22;
-      final speedT = (phase * (1.2 + (i % 4) * 0.3) + i * 0.13) % 1.0;
-      final len = 40.0 + intensity * 60;
-      final y = speedT * (size.height + len) - len;
-      canvas.drawLine(
-        Offset(baseX, y),
-        Offset(baseX + (fromLeft ? -8 : 8), y + len),
-        paint,
-      );
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant _SpeedLinesPainter oldDelegate) {
-    return oldDelegate.intensity != intensity || oldDelegate.phase != phase;
-  }
-}
-
-class _DustParticle {
-  double laneAnim;
-  double y;
-  double drift;
-  int life;
-  static const int maxLife = 20;
-  _DustParticle({
-    required this.laneAnim,
-    required this.y,
-    required this.drift,
-    this.life = maxLife,
-  });
-}
-
-class _NeonSparkle {
-  double x;
+class _TrailParticle {
+  double lane;
   double y;
   Color color;
   int life;
-  static const int maxLife = 18;
-  _NeonSparkle({
-    required this.x,
-    required this.y,
-    required this.color,
-    this.life = maxLife,
-  });
+  static const int maxLife = 16;
+  _TrailParticle({required this.lane, required this.y, required this.color, this.life = maxLife});
 }
 
 class DashedLinePainter extends CustomPainter {
@@ -3370,24 +1736,13 @@ class DashedLinePainter extends CustomPainter {
   DashedLinePainter({required this.offset});
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = Colors.white70
-      ..strokeWidth = 4;
-    const dashHeight = 30.0;
-    const dashSpace = 30.0;
+    final paint = Paint()..color = Colors.white70..strokeWidth = 4;
     double startY = -80 + offset;
     while (startY < size.height) {
-      canvas.drawLine(
-        Offset(size.width / 2, startY),
-        Offset(size.width / 2, startY + dashHeight),
-        paint,
-      );
-      startY += dashHeight + dashSpace;
+      canvas.drawLine(Offset(size.width / 2, startY), Offset(size.width / 2, startY + 30.0), paint);
+      startY += 60.0;
     }
   }
-
   @override
-  bool shouldRepaint(covariant DashedLinePainter oldDelegate) {
-    return oldDelegate.offset != offset;
-  }
+  bool shouldRepaint(covariant DashedLinePainter oldDelegate) => true;
 }
