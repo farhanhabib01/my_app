@@ -962,7 +962,7 @@ class _StartScreenState extends State<StartScreen>
   }
 }
 
-enum ItemType { coin, keyItem, car, barricade, bush }
+enum ItemType { coin, keyItem, car, barricade, bush, magnet }
 
 class FallingItem {
   int lane;
@@ -1055,6 +1055,10 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   Timer? reviveTimer;
   bool isRevivingCloud = false;
 
+  // Magnet Shield Power-up feature state
+  bool hasMagnetShield = false;
+  int magnetShieldTimer = 0;
+
   final Random random = Random();
 
   int tickCounter = 0;
@@ -1079,6 +1083,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   late AnimationController _gameOverController;
   late AnimationController _gameOverPulseController;
   late AnimationController _levelUpController;
+  late AnimationController _shieldPulseController;
 
   @override
   void initState() {
@@ -1137,6 +1142,11 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
           if (mounted) setState(() {});
         });
 
+    _shieldPulseController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 600),
+    )..repeat(reverse: true);
+
     _tapPulseController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 800),
@@ -1165,6 +1175,8 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     level = 1;
     isNewHighScore = false;
     speed = 0.006;
+    hasMagnetShield = false;
+    magnetShieldTimer = 0;
 
     playerLane = 1;
     playerLaneAnim = 1.0;
@@ -1228,6 +1240,14 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
 
       playerLaneAnim += (playerLane - playerLaneAnim) * 0.28;
       policeLaneAnim += (policeLane - policeLaneAnim) * 0.22;
+
+      // Decrement Magnet Shield duration if active
+      if (hasMagnetShield) {
+        magnetShieldTimer--;
+        if (magnetShieldTimer <= 0) {
+          hasMagnetShield = false;
+        }
+      }
 
       policeLaneDelayCounter++;
       if (policeLaneDelayCounter > 15) {
@@ -1302,17 +1322,19 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
 
           double chance = random.nextDouble();
           double carChance = (0.25 + (speed - 0.006) * 6).clamp(0.25, 0.45);
-          double coinChance = 0.45 + (speedProgress * 0.25);
-          if (coinChance > 0.70) coinChance = 0.70;
+          double coinChance = 0.40 + (speedProgress * 0.20);
+          if (coinChance > 0.65) coinChance = 0.65;
 
           ItemType type;
-          if (level >= 2 && chance < 0.08) {
+          if (level >= 2 && chance < 0.06) {
             type = ItemType.keyItem;
+          } else if (level >= 2 && chance < 0.12) {
+            type = ItemType.magnet; // Magnet Shield power-up spawn
           } else if (chance < coinChance) {
             type = ItemType.coin;
           } else if (chance < coinChance + carChance) {
             type = ItemType.car;
-          } else if (chance < coinChance + carChance + 0.15) {
+          } else if (chance < coinChance + carChance + 0.12) {
             type = ItemType.barricade;
           } else {
             type = ItemType.bush;
@@ -1337,6 +1359,16 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
       }
 
       for (var item in items) {
+        // If Magnet Shield is active, pull coins toward the player!
+        if (hasMagnetShield && item.type == ItemType.coin) {
+          if (item.lane != playerLane) {
+            if (item.lane < playerLane) {
+              item.lane++;
+            } else {
+              item.lane--;
+            }
+          }
+        }
         item.y += speed;
       }
 
@@ -1363,11 +1395,30 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
             items.remove(item);
             SoundManager.playCoin();
             _scoreBumpController.forward(from: 0);
+          } else if (item.type == ItemType.magnet) {
+            hasMagnetShield = true;
+            magnetShieldTimer = 450; // duration ticks
+            score += 75;
+            popups.add(
+              FloatingPopup(x: item.lane * 1.0, y: item.y, text: 'MAGNET SHIELD!'),
+            );
+            items.remove(item);
+            SoundManager.playCoin();
+            _scoreBumpController.forward(from: 0);
           } else if (isJumping) {
             item.dodged = true;
           } else {
-            arrestPlayer();
-            return;
+            if (hasMagnetShield) {
+              // Absorbs the crash damage & deactivates shield
+              hasMagnetShield = false;
+              items.remove(item);
+              popups.add(
+                FloatingPopup(x: item.lane * 1.0, y: item.y, text: 'SHIELD ABSORBED!'),
+              );
+            } else {
+              arrestPlayer();
+              return;
+            }
           }
         }
       }
@@ -1609,6 +1660,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     _gameOverController.dispose();
     _gameOverPulseController.dispose();
     _levelUpController.dispose();
+    _shieldPulseController.dispose();
     _tapPulseController.dispose();
     _introIdleBobController.dispose();
     super.dispose();
@@ -1769,6 +1821,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
         );
       case ItemType.coin:
       case ItemType.keyItem:
+      case ItemType.magnet:
         return buildItemWidget(item);
     }
   }
@@ -1829,6 +1882,38 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                 Icons.vpn_key_rounded,
                 color: Colors.cyanAccent,
                 size: 36,
+                shadows: [Shadow(color: Colors.black54, blurRadius: 6)],
+              ),
+            ],
+          ),
+        );
+      case ItemType.magnet:
+        final wobble = sin((tickCounter + item.hashCode) * 0.15) * 4;
+        final glowPulse = (sin((tickCounter + item.hashCode) * 0.12) + 1) / 2;
+        return Transform.translate(
+          offset: Offset(0, wobble),
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              Container(
+                width: 54,
+                height: 54,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: RadialGradient(
+                    colors: [
+                      Colors.purpleAccent.withValues(
+                        alpha: 0.4 + glowPulse * 0.4,
+                      ),
+                      Colors.transparent,
+                    ],
+                  ),
+                ),
+              ),
+              const Icon(
+                Icons.electric_bolt_rounded,
+                color: Colors.purpleAccent,
+                size: 38,
                 shadows: [Shadow(color: Colors.black54, blurRadius: 6)],
               ),
             ],
@@ -2234,31 +2319,67 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                     (isJumping
                         ? 0
                         : (isIntroPhase
-                              ? sin(_introIdleBobController.value * pi) * 6
-                              : (sin(tickCounter * 0.35) + 1) * 2.5)),
-                child: Transform.rotate(
-                  angle: ((playerLane - playerLaneAnim) * -0.35).clamp(
-                    -0.25,
-                    0.25,
-                  ),
-                  child: Transform.scale(
-                    scale: isIntroPhase
-                        ? 1.0 + (_introIdleBobController.value * 0.05)
-                        : 1.0,
-                    child: Transform(
-                      alignment: Alignment.bottomCenter,
-                      transform: Matrix4.diagonal3Values(
-                        playerSquash.dx,
-                        playerSquash.dy,
-                        1.0,
+                            ? sin(_introIdleBobController.value * pi) * 6
+                            : (sin(tickCounter * 0.35) + 1) * 2.5)),
+                child: Stack(
+                  alignment: Alignment.center,
+                  clipBehavior: Clip.none,
+                  children: [
+                    Transform.rotate(
+                      angle: ((playerLane - playerLaneAnim) * -0.35).clamp(
+                        -0.25,
+                        0.25,
                       ),
-                      child: safeImage(
-                        'assets/game/character.gif',
-                        width: 80,
-                        height: 80,
+                      child: Transform.scale(
+                        scale: isIntroPhase
+                            ? 1.0 + (_introIdleBobController.value * 0.05)
+                            : 1.0,
+                        child: Transform(
+                          alignment: Alignment.bottomCenter,
+                          transform: Matrix4.diagonal3Values(
+                            playerSquash.dx,
+                            playerSquash.dy,
+                            1.0,
+                          ),
+                          child: safeImage(
+                            'assets/game/character.gif',
+                            width: 80,
+                            height: 80,
+                          ),
+                        ),
                       ),
                     ),
-                  ),
+                    if (hasMagnetShield)
+                      AnimatedBuilder(
+                        animation: _shieldPulseController,
+                        builder: (context, _) {
+                          final p = 1.0 + (_shieldPulseController.value * 0.15);
+                          return Transform.scale(
+                            scale: p,
+                            child: Container(
+                              width: 90,
+                              height: 90,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: Colors.purpleAccent,
+                                  width: 3,
+                                ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.purpleAccent.withValues(
+                                      alpha: 0.6,
+                                    ),
+                                    blurRadius: 16,
+                                    spreadRadius: 2,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                  ],
                 ),
               ),
 
