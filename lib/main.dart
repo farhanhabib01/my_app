@@ -1055,7 +1055,6 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   Timer? reviveTimer;
   bool isRevivingCloud = false;
 
-  // Magnet Shield Power-up feature state
   bool hasMagnetShield = false;
   int magnetShieldTimer = 0;
 
@@ -1241,7 +1240,6 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
       playerLaneAnim += (playerLane - playerLaneAnim) * 0.28;
       policeLaneAnim += (policeLane - policeLaneAnim) * 0.22;
 
-      // Decrement Magnet Shield duration if active
       if (hasMagnetShield) {
         magnetShieldTimer--;
         if (magnetShieldTimer <= 0) {
@@ -1329,7 +1327,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
           if (level >= 2 && chance < 0.06) {
             type = ItemType.keyItem;
           } else if (level >= 2 && chance < 0.12) {
-            type = ItemType.magnet; // Magnet Shield power-up spawn
+            type = ItemType.magnet;
           } else if (chance < coinChance) {
             type = ItemType.coin;
           } else if (chance < coinChance + carChance) {
@@ -1359,7 +1357,6 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
       }
 
       for (var item in items) {
-        // If Magnet Shield is active, pull coins toward the player!
         if (hasMagnetShield && item.type == ItemType.coin) {
           if (item.lane != playerLane) {
             if (item.lane < playerLane) {
@@ -1397,10 +1394,14 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
             _scoreBumpController.forward(from: 0);
           } else if (item.type == ItemType.magnet) {
             hasMagnetShield = true;
-            magnetShieldTimer = 450; // duration ticks
+            magnetShieldTimer = 450;
             score += 75;
             popups.add(
-              FloatingPopup(x: item.lane * 1.0, y: item.y, text: 'MAGNET SHIELD!'),
+              FloatingPopup(
+                x: item.lane * 1.0,
+                y: item.y,
+                text: 'MAGNET SHIELD!',
+              ),
             );
             items.remove(item);
             SoundManager.playCoin();
@@ -1409,11 +1410,14 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
             item.dodged = true;
           } else {
             if (hasMagnetShield) {
-              // Absorbs the crash damage & deactivates shield
               hasMagnetShield = false;
               items.remove(item);
               popups.add(
-                FloatingPopup(x: item.lane * 1.0, y: item.y, text: 'SHIELD ABSORBED!'),
+                FloatingPopup(
+                  x: item.lane * 1.0,
+                  y: item.y,
+                  text: 'SHIELD ABSORBED!',
+                ),
               );
             } else {
               arrestPlayer();
@@ -2319,8 +2323,8 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                     (isJumping
                         ? 0
                         : (isIntroPhase
-                            ? sin(_introIdleBobController.value * pi) * 6
-                            : (sin(tickCounter * 0.35) + 1) * 2.5)),
+                              ? sin(_introIdleBobController.value * pi) * 6
+                              : (sin(tickCounter * 0.35) + 1) * 2.5)),
                 child: Stack(
                   alignment: Alignment.center,
                   clipBehavior: Clip.none,
